@@ -1,4 +1,8 @@
 clear all;
+%tgq: run before gmet_station_climo_anoms.m
+%read all ensemble members, and sort prcp from high to low, and calculate
+%the std of tmean and trange
+%save in netcdf
 
 %d_path = '/glade/p/ral/hap/anewman/GMET_test_ecai/outputs/climo';
 d_path = '/glade/p/ral/hap/anewman/GMET_test_ecai/outputs';
