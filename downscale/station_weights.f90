@@ -22,8 +22,8 @@ subroutine compute_station_weights(sta_weight_name,ngrid,nstns,X,Z,search_distan
   real(DP), intent(in)          :: tair_data(:,:,:)    !station air temperature data
 
   !in/out
-  real(DP), intent(inout)     :: close_meta(:,:,:)
-  real(DP), intent(inout)     :: close_meta_t(:,:,:)
+  real(DP), intent(inout)     :: close_meta(:,:,:) ! five variables: station lat, station lon, grid lat, grid lon, distance
+  real(DP), intent(inout)     :: close_meta_t(:,:,:) ! for each grid cell, the id/number of all nearby stations (e.g., 30)
   integer(I4B), intent(inout) :: close_loc(:,:)
   integer(I4B), intent(inout) :: close_loc_t(:,:)
   integer(I4B), intent(inout) :: close_count(:)

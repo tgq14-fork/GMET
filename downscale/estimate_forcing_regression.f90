@@ -354,7 +354,8 @@ subroutine estimate_forcing_regression (gen_sta_weights, sta_weight_name, x, z, 
 
     call read_station (stnvar, stnid(i), directory, st_rec, end_rec, stn_prcp, stn_tair, &
    & stn_miss, stn_miss_t, error)
-
+	
+	! those output may be unnecessary because when there are too many stations, it is impossible to identify what is being output in screen
     print*, "first value check: "
     print*, "   prcp(1): ",stn_prcp(1)
     print*, "   tavg(1): ",stn_tair(1,1)
@@ -496,7 +497,7 @@ subroutine estimate_forcing_regression (gen_sta_weights, sta_weight_name, x, z, 
         yp_red = 0
 
         max_distance = 0.0d0
-        do i = 1, (close_count(g)-1)
+        do i = 1, (close_count(g)-1) ! close_count is sta_limit+1. "close_count(g)-1" should be done in station_weights.f90
           if (close_meta(5, g, i) .gt. max_distance) then
             max_distance = close_meta (5, g, i)
           end if

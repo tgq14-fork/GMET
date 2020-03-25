@@ -431,7 +431,7 @@ program gmet
       print*, "Max Distance not correctly read ... quitting"
       stop
     end if
-    maxdistance = maxdistance * 0.539957   ! AWW...why?
+    maxdistance = maxdistance * 0.539957   !TGQ: 1 km ~= 0.539957 nautical mile
  
     call read_station_list (site_list, stnid, stnname, stnlat, stnlon, stnalt, stn_slp_n, &
    & stn_slp_e, nstations, error, vars) ! AWW added vars
@@ -531,7 +531,7 @@ program gmet
        end if
 
     else if(trim(time_mode) .eq. 'climo') then
-      call estimate_climo_regression(gen_sta_weights, sta_weight_name, x, z, ngrid, maxdistance, times, st_rec, end_rec, &
+      call estimate_climo_regression(gen_sta_weights, sta_weight_name, x(:,1:6), z(:,1:6), ngrid, maxdistance, times, st_rec, end_rec, &
             & stnid, station_var, directory, pcp, pop, pcperror, tmean, &
             & tmean_err, trange, trange_err, mean_autocorr, mean_tp_corr, y_max, error)
        if (error /= 0) then
