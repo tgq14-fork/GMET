@@ -509,11 +509,11 @@ subroutine estimate_forcing_regression (gen_sta_weights, sta_weight_name, x, z, 
           call calc_distance_weight (max_distance, close_meta(1, g, i), close_meta(2, g, i), &
          & close_meta(3, g, i), close_meta(4, g, i), tmp_weight)
 
-          w_pcp_red (i, i) = tmp_weight
+          w_pcp_red (i, i) = tmp_weight ! diagonal matrix: temporal weight based on max_distance
           w_pcp_1d (i) = tmp_weight
-          w_pcp_1d_loc (i) = close_loc (g, i)
-          y_red (i) = y (close_loc(g, i))
-          x_red (i, :) = x (close_loc(g, i), :)
+          w_pcp_1d_loc (i) = close_loc (g, i) ! close station location/id/number
+          y_red (i) = y (close_loc(g, i)) ! close station prcp
+          x_red (i, :) = x (close_loc(g, i), :) ! close station basic information [1, lat, lon, altitude, slp_n, slp_e]
 
           if (prcp_data(close_loc(g, i), t) .gt. 0.0) then
             ndata = ndata + 1    ! count data points with non-zero precip
@@ -523,7 +523,7 @@ subroutine estimate_forcing_regression (gen_sta_weights, sta_weight_name, x, z, 
           end if
         end do
 
-        call normalize_xv (y_red, w_pcp_1d, yp_red, step_max)
+        call normalize_xv (y_red, w_pcp_1d, yp_red, step_max) ! TGQ: why calling a complex function normalize_xv just to get the max value of y_red?
 
         y_max (g, t) = step_max
 

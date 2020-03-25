@@ -55,8 +55,8 @@ subroutine normalize_xv (x, weight, yp, smax)
  
   ntimes = size (x)
  
-  smin = 9999.0
-  smax = 0.0
+  smin = 9999.0 ! to obtain min of x
+  smax = 0.0 !max
  
   sum_xw = 0.0d0
   sum_weight = 0.0d0
