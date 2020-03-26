@@ -465,14 +465,14 @@ program generate_ensembles
   print *, 'Generating weights for spatially correlated random field (SCRF)...'
  
   call spcorr_grd (nspl1, nspl2, grid)
-  sp_pcp = spcorr
+  sp_pcp = spcorr !this is location, weigth, and std of previously generated points. it won't be changed.
  
   call field_rand (nspl1, nspl2, pcp_random)
  
   ! setup sp_corr structure for temperature with larger correlation length
   clen = 800.0 !rough estimate based on observations
   call spcorr_grd (nspl1, nspl2, grid)
-  sp_temp = spcorr
+  sp_temp = spcorr !this is location, weigth, and std of previously generated points. it won't be changed.
  
   call field_rand (nspl1, nspl2, tmean_random)
   call field_rand (nspl1, nspl2, trange_random)
@@ -511,6 +511,7 @@ program generate_ensembles
 
         !check time mode and read climatological fields if necessary
         !climo fields only needed for daily anomaly time mode
+        !TGQ Why don't put this part right after "do istep = 1, ntimes"?
         if(trim(time_mode) .eq. 'DAILY_ANOM' .or. trim(time_mode) .eq. 'daily_anom') then
           !read in climo grid if needed
           call unix_to_date(times(istep),year,current_month,day,hour,minute,second)
@@ -574,7 +575,9 @@ program generate_ensembles
             else if (cs .ge. 0.99997) then
               rn = 3.99
             else
-              rn = sqrt (2._sp) * erfinv ((2._sp*real(cs, kind(sp)))-1.0_sp)
+              !erfinv: inversion error function: erf-1(a)
+              !find the value corresponding to cumulative probability cs in N(0,1)
+              rn = sqrt (2._sp) * erfinv ((2._sp*real(cs, kind(sp)))-1.0_sp) 
             end if
  
             cs_percentile = ceiling(cs*100.)
@@ -583,6 +586,7 @@ program generate_ensembles
             endif
 
             !time mode defines how ensemble values are generated
+            !TGQ: dailt_anom should be after daily
             if(trim(time_mode) .eq. 'daily_anom' .or. trim(time_mode) .eq. 'DAILY_ANOM') then
               ra = real(pcp(isp1,isp2,istep),kind(dp))+rn*real(pcp_error(isp1,isp2,istep),kind(dp))
               ra = ((ra*(1.0/transform))+1.0_dp)**transform
