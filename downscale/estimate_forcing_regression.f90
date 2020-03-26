@@ -164,7 +164,7 @@ subroutine estimate_forcing_regression (gen_sta_weights, sta_weight_name, x, z, 
   ! =========== end interfaces, start code =============
 
   real (dp), intent (in) :: x (:, :), z (:, :)  ! station and grid point description arrays
-  real (dp), intent (in) :: maxdistance         ! max distance for weight function
+  real (dp), intent (in) :: maxdistance         ! max distance for weight function. !TGQ: This is not used? 
   integer (i4b), intent (in) :: ngrid           ! number of grid points
   real (dp), intent (in) :: times (:)!time step array
 

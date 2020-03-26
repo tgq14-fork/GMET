@@ -143,7 +143,7 @@ subroutine spcorr_grd (nspl1, nspl2, grid)
     deallocate (jorder, stat=ierr)
     if (ierr .ne. 0) call exit_scrf (1, ' problem deallocating space for the processing order ')
   end if
-  allocate (iorder(nspl1*nspl2), jorder(nspl1*nspl2), stat=ierr)
+  allocate (iorder(nspl1*nspl2), jorder(nspl1*nspl2), stat=ierr) ! iorder is row number
   if (ierr .ne. 0) call exit_scrf (1, ' problem allocating space for the processing order ')
 ! ----------------------------------------------------------------------------------------
 ! (3) LOOP THROUGH THE DIFFERENT GRID RESOLUTIONS (PROCESS COARSE RESOLUTION FIRST)

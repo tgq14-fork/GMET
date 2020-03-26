@@ -242,6 +242,7 @@ program generate_ensembles
   jerr = 0
 
   ! AW set number of ensembles to generate
+  !TGQ: the codes are repeated?
   nens = stop_ens - start_ens + 1
   if(nens <= 0) call exit_scrf (1, 'number of ensembles to generate is 0 or less')
   print*, 'Generating ',nens,' ensembles from ',start_ens,' to ',stop_ens
@@ -368,6 +369,7 @@ program generate_ensembles
   if (ierr /= 0) stop
  
   !sanity check on the observed maximum value in transformed anomaly space
+  !TGQ: but pcp > 5 ** 4 is possible?
   where(obs_max_pcp .gt. 5.)
     obs_max_pcp = 5.0
   end where
@@ -542,8 +544,8 @@ program generate_ensembles
         
 
         ! identify the (i,j) position of the igrd-th point
-        isp1 = iorder (igrd)
-        isp2 = jorder (igrd)
+        isp1 = iorder (igrd) ! iorder is row number
+        isp2 = jorder (igrd) ! horder is col number
  
         ! only compute values for valid grid points
         if (grid%elv(isp1, isp2) .gt.-300.0) then
