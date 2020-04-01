@@ -56,3 +56,6 @@ downscale/alt/
 
 #other makefiles
 Makefile-cheyenne
+
+#no mac files
+*.DS_Store
