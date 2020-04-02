@@ -234,8 +234,11 @@ program gmet
   real (sp), allocatable :: pcp (:, :), pop (:, :), pcperror (:, :)
   real (sp), allocatable :: tmean (:, :), tmean_err (:, :)
   real (sp), allocatable :: trange (:, :), trange_err (:, :)
- 
- 
+  
+  ! add by TGQ
+  integer (i4b) :: startsec, startmin, starthour, startday, startmonth, startyear, starterror
+  integer (i4b) :: stnstartsec, stnstartmin, stnstarthour, stnstartday, stnstartmonth, stnstartyear, stnstarterror
+  ! end: add by TGQ 
   ! ========== code starts below ==============================
  
   ! get config_file filename from command line
@@ -298,30 +301,41 @@ program gmet
       & START_DATE, END_DATE, SITE_LIST or OUTPUT_FILE"
     stop
   end if
- 
+  
+  ! --- TGQ: process the date when time_mode = climo ---
   ! --- AWW:  calculate start and end utimes & records for requested station data read period ---
-  call get_time_list (startdate, enddate, times)  ! makes unix-time list for desired records
-  ntimes = size (times)
-  print *, 'startdate=', startdate, 'enddate=', enddate, 'ntimes=', ntimes  ! YYYYMMDD dates
-  print *, "---------"
+  if (trim(time_mode) .eq. 'climo') then
+    call parse_date (startdate, startyear, startmonth, startday, starthour, startmin, startsec, starterror)
+    call parse_date (stn_startdate, stnstartyear, stnstartmonth, stnstartday, stnstarthour, stnstartmin, stnstartsec, stnstarterror)
+    times = 1 ! default: one month
+    st_rec = (startyear - stnstartyear) * 12 + (startmonth - stnstartmonth + 1)
+    end_rec = st_rec
+    print *, 'startdate=', startdate, 'enddate=', enddate, 'ntimes=', ntimes  ! YYYYMMDD dates
+    print *, 'st_rec and end_rec days since station start month: ', st_rec, end_rec
+  else
+    call get_time_list (startdate, enddate, times)  ! makes unix-time list for desired records
+    ntimes = size (times)
+    print *, 'startdate=', startdate, 'enddate=', enddate, 'ntimes=', ntimes  ! YYYYMMDD dates
+    print *, "---------"
 
-  !translate times to a start and end record for station files
+    !translate times to a start and end record for station files
 
-  ! NOTE: the station file start & end dates are given in the config file so that this calculation 
-  !   doesn't have to be done for every single station (ie reading st/end from the station file
-  !   but it would be more flexible to do it for every station file, perhaps -- then they would
-  !   not all have to be the same lengths
+    ! NOTE: the station file start & end dates are given in the config file so that this calculation 
+    !   doesn't have to be done for every single station (ie reading st/end from the station file
+    !   but it would be more flexible to do it for every station file, perhaps -- then they would
+    !   not all have to be the same lengths
+  
+    ! --- station data start and end utimes are now derived from config file dates
+    st_stndata_utime = date_to_unix (stn_startdate) ! returns secs-since-1970 for st date of station files
+    end_stndata_utime = date_to_unix (stn_enddate)  ! returns secs-since-1970 for end date of station files
 
-  ! --- station data start and end utimes are now derived from config file dates
-  st_stndata_utime = date_to_unix (stn_startdate) ! returns secs-since-1970 for st date of station files
-  end_stndata_utime = date_to_unix (stn_enddate)  ! returns secs-since-1970 for end date of station files
-
-  ! calculate start & end recs for processing station data files 
-  st_rec = floor ((times(1)-st_stndata_utime)/86400) + 1
-  end_rec = floor ((times(ntimes)-st_stndata_utime)/86400) + 1
-  print *, 'st_rec and end_rec days since 1970/1/1: ', st_rec, end_rec
+    ! calculate start & end recs for processing station data files 
+    st_rec = floor ((times(1)-st_stndata_utime)/86400) + 1
+    end_rec = floor ((times(ntimes)-st_stndata_utime)/86400) + 1
+    print *, 'st_rec and end_rec days since 1970/1/1: ', st_rec, end_rec
+  end if
   ! --- end AWW add ---
- 
+  ! --- end TGQ add ---
  
   ! === CHOOSE BETWEEN MODE 1 and MODE 2 ====
   if (mode == 1) then
