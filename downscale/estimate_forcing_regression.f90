@@ -322,7 +322,7 @@ subroutine estimate_forcing_regression (gen_sta_weights, sta_weight_name, x, z, 
   allocate(w_pcp_red_loocv(sta_limit-1,sta_limit-1))
   allocate(x_red_t_loocv(sta_limit-1,xsize))
   allocate(w_temp_red_loocv(sta_limit-1,sta_limit-1))
-  allocate(Y_tmean_red_loocv(sta_limit),Y_trange_red_loocv(sta_limit))
+  allocate(Y_tmean_red_loocv(sta_limit-1),Y_trange_red_loocv(sta_limit-1)) ! revise by TGQ
   allocate(tmp_weight_arr(sta_limit,sta_limit))
 
 
@@ -355,12 +355,12 @@ subroutine estimate_forcing_regression (gen_sta_weights, sta_weight_name, x, z, 
     call read_station (stnvar, stnid(i), directory, st_rec, end_rec, stn_prcp, stn_tair, &
    & stn_miss, stn_miss_t, error)
 	
-	! those output may be unnecessary because when there are too many stations, it is impossible to identify what is being output in screen
-    print*, "first value check: "
-    print*, "   prcp(1): ",stn_prcp(1)
-    print*, "   tavg(1): ",stn_tair(1,1)
-    print*, "   trng(1): ",stn_tair(2,1)
-    print*
+	! tgq: those output may be unnecessary because when there are too many stations, it is impossible to identify what is being output in screen
+!     print*, "first value check: "
+!     print*, "   prcp(1): ",stn_prcp(1)
+!     print*, "   tavg(1): ",stn_tair(1,1)
+!     print*, "   trng(1): ",stn_tair(2,1)
+!     print*
 
     prcp_data (i, :) = stn_prcp
     tair_data (1, i, :) = stn_tair (1, :)
@@ -567,7 +567,7 @@ subroutine estimate_forcing_regression (gen_sta_weights, sta_weight_name, x, z, 
         ! ---- checks on station availability for precip and temp
 
         if (ndata == 0 .and. nodata == 0) then
-          print *, "WARNING:  No stations with data within max distance of grid cell!"
+          !print *, "WARNING:  No stations with data within max distance of grid cell!"
           ! this should not happen if station data are filled
           pop (g, t) = 0.0
           pcp (g, t) = 0.0
@@ -588,7 +588,7 @@ subroutine estimate_forcing_regression (gen_sta_weights, sta_weight_name, x, z, 
             trange_err (g, t) = 0.0
           end if
         end if
-        ! print *,ndata
+        !print *,ndata
 
         ! ========= Precip & temp are processed sequentially, again ===========
         ! this is the start of the PRECIP processing block ---
@@ -608,7 +608,7 @@ subroutine estimate_forcing_regression (gen_sta_weights, sta_weight_name, x, z, 
 
           ! -------------- 1. CALCULATING POP -----------------
           if (nodata == 0) then
-            ! print *, "All stations have precip>0, POP = 1.0"
+            print *, "All stations have precip>0, POP = 1.0"
             pop (g, t) = 1.0
           else
             ! some stations don't have precip > 0
@@ -656,7 +656,6 @@ subroutine estimate_forcing_regression (gen_sta_weights, sta_weight_name, x, z, 
           ! print *, "POP: ", POP(g,t)
 
           ! -------------- 2. NOW CALCULATING PCP -----------------
-
           if(slope_flag_pcp .eq. 0) then
             !regression without slope terms
             allocate(twx_red(4, sta_limit))
@@ -763,14 +762,13 @@ subroutine estimate_forcing_regression (gen_sta_weights, sta_weight_name, x, z, 
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         !  Temperature OLS
         !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
         if (ndata_t .ge. 1) then !
           ! regression without slope terms  only for temperature
           allocate(tx_red(4,sta_limit))
           allocate(twx_red(4,sta_limit))
           allocate(tx_red_loocv(4,sta_limit-1))
           allocate(twx_red_loocv(4,sta_limit-1))
-
+		  
           tx_red = transpose (x_red_t(:, 1:4))
           twx_red = matmul (tx_red, w_temp_red)
           call least_squares (x_red_t(:,1:4), y_tmean_red, twx_red, b)
@@ -796,7 +794,7 @@ subroutine estimate_forcing_regression (gen_sta_weights, sta_weight_name, x, z, 
             TX_red_loocv = transpose(X_red_t_loocv(:, 1:4))
             TWX_red_loocv = matmul(TX_red_loocv,w_temp_red_loocv)
             call least_squares(X_red_t_loocv(:, 1:4), Y_tmean_red_loocv,TWX_red_loocv, B)
-
+			
             temp_pred = dot_product(X_red_t(i,1:4),B)
             errsum = errsum + (w_temp_red(i,i) * (temp_pred - Y_tmean_red(i))**2)
           enddo
@@ -805,7 +803,6 @@ subroutine estimate_forcing_regression (gen_sta_weights, sta_weight_name, x, z, 
           deallocate (b)
 
           ! ===== NOW do TRANGE ============
-
           !regression without slope terms
           TX_red = transpose(X_red_t(:,1:4))
           TWX_red = matmul(TX_red, w_temp_red)

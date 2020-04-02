@@ -318,7 +318,7 @@ subroutine estimate_climo_regression (gen_sta_weights, sta_weight_name, x, z, ng
   allocate(w_pcp_red_loocv(sta_limit-1,sta_limit-1))
   allocate(x_red_t_loocv(sta_limit-1,xsize))
   allocate(w_temp_red_loocv(sta_limit-1,sta_limit-1))
-  allocate(Y_tmean_red_loocv(sta_limit),Y_trange_red_loocv(sta_limit))
+  allocate(Y_tmean_red_loocv(sta_limit-1),Y_trange_red_loocv(sta_limit-1))
   allocate(tmp_weight_arr(sta_limit,sta_limit))
 
   ! initializations
@@ -350,11 +350,11 @@ subroutine estimate_climo_regression (gen_sta_weights, sta_weight_name, x, z, ng
     call read_station (stnvar, stnid(i), directory, st_rec, end_rec, stn_prcp, stn_tair, &
    & stn_miss, stn_miss_t, error)
 
-    print*, "first value check: "
-    print*, "   prcp(1): ",stn_prcp(1)
-    print*, "   tavg(1): ",stn_tair(1,1)
-    print*, "   trng(1): ",stn_tair(2,1)
-    print*
+    ! print*, "first value check: "
+!     print*, "   prcp(1): ",stn_prcp(1)
+!     print*, "   tavg(1): ",stn_tair(1,1)
+!     print*, "   trng(1): ",stn_tair(2,1)
+!     print*
 
     prcp_data (i, :) = stn_prcp
     tair_data (1, i, :) = stn_tair (1, :)
