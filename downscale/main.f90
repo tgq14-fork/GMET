@@ -310,7 +310,7 @@ program gmet
     ntimes = 1 ! default: one month
     st_rec = (startyear - stnstartyear) * 12 + (startmonth - stnstartmonth + 1)
     end_rec = st_rec
-    times = startyear*10000 + startmonth*100 + startday
+    call get_time_list (startdate, startdate, times)
     print *, 'startdate=', startdate, 'enddate=', enddate, 'ntimes=', ntimes  ! YYYYMMDD dates
     print *, 'st_rec and end_rec days since station start month: ', st_rec, end_rec
   else
