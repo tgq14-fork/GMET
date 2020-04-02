@@ -307,7 +307,7 @@ program gmet
   if (trim(time_mode) .eq. 'climo') then
     call parse_date (startdate, startyear, startmonth, startday, starthour, startmin, startsec, starterror)
     call parse_date (stn_startdate, stnstartyear, stnstartmonth, stnstartday, stnstarthour, stnstartmin, stnstartsec, stnstarterror)
-    times = 1 ! default: one month
+    ntimes = 1 ! default: one month
     st_rec = (startyear - stnstartyear) * 12 + (startmonth - stnstartmonth + 1)
     end_rec = st_rec
     print *, 'startdate=', startdate, 'enddate=', enddate, 'ntimes=', ntimes  ! YYYYMMDD dates
