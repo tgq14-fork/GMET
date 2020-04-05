@@ -225,7 +225,7 @@ program generate_ensembles
   ! add by TGQ
 
   type (coords), pointer :: grid !coordinate structure for grid
-  type (splnum), dimension (:, :), pointer :: sp_pcp, sp_temp ! structures of spatially correlated random field weights
+  type (splnum), dimension (:, :), pointer :: sp_pcp, sp_temp, sp_trange ! structures of spatially correlated random field weights
 
   ! ========== code starts below ==============================
  
@@ -397,7 +397,14 @@ program generate_ensembles
   if (ierr .ne. 0) then
     call exit_scrf (1, 'problem deallocating space for sp_temp ')
   end if
- 
+  
+  ! TGQ
+  allocate (sp_trange(nspl1, nspl2), stat=ierr)
+  if (ierr .ne. 0) then
+    call exit_scrf (1, 'problem deallocating space for sp_trange ')
+  end if
+  ! TGQ
+  
   if (allocated(rho)) then
     deallocate (rho, stat=ierr)
     if (ierr .ne. 0) call exit_scrf (1, 'problem deallocating space for rho ')
@@ -492,6 +499,17 @@ program generate_ensembles
   sp_temp = spcorr !this is location, weigth, and std of previously generated points. it won't be changed.
  
   call field_rand (nspl1, nspl2, tmean_random)
+  
+  ! setup sp_corr structure for trange
+  ! clen = 800.0 !rough estimate based on observations
+  if(trim(time_mode) .eq. 'daily_anom' .or. trim(time_mode) .eq. 'DAILY_ANOM' .or. trim(time_mode) .eq. 'daily' .or. trim(time_mode) .eq. 'DAILY') then
+    clen = clen_daily_trange(current_month)
+  elseif(trim(time_mode) .eq. 'climo' .or. trim(time_mode) .eq. 'CLIMO') then
+    clen = clen_month_trange(current_month)
+  end if
+  call spcorr_grd (nspl1, nspl2, grid)
+  sp_trange = spcorr !this is location, weigth, and std of previously generated points. it won't be changed.
+  
   call field_rand (nspl1, nspl2, trange_random)
  
   print *, 'Done generating weights...'
@@ -736,7 +754,9 @@ program generate_ensembles
       ! want to condition random numbers in the following way:
       ! use the temp auto correlation to condition the tmean and trange
       tmean_random = old_random * auto_corr (1) + sqrt (1-auto_corr(1)*auto_corr(1)) * tmean_random
+      
       ! generate new random numbers for trange
+      spcorr = sp_trange
       old_random = trange_random
       call field_rand (nspl1, nspl2, trange_random)
       trange_random = old_random * auto_corr (1) + sqrt (1-auto_corr(1)*auto_corr(1)) * &
