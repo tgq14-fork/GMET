@@ -525,7 +525,7 @@ subroutine estimate_forcing_regression (gen_sta_weights, sta_weight_name, x, z, 
 
         call normalize_xv (y_red, w_pcp_1d, yp_red, step_max) ! TGQ: why calling a complex function normalize_xv just to get the max value of y_red?
 
-        y_max (g, t) = step_max
+        y_max (g, t) = step_max ! max value after transformation
 
         ! ---- second, TEMPERATURES ----
 

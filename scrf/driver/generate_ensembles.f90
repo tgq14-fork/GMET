@@ -369,7 +369,6 @@ program generate_ensembles
   if (ierr /= 0) stop
  
   !sanity check on the observed maximum value in transformed anomaly space
-  !TGQ: but pcp > 5 ** 4 is possible?
   where(obs_max_pcp .gt. 5.)
     obs_max_pcp = 5.0
   end where
@@ -611,10 +610,12 @@ program generate_ensembles
                 pcp_error(isp1,isp2,istep) = 0.1
               endif
               ra =  real(pcp(isp1,isp2,istep),kind(dp))+rn*real(pcp_error(isp1,isp2,istep),kind(dp))
-              ra = ((ra*(1.0/transform))+1.0_dp)**transform
+              ra = ((ra*(1.0/transform))+1.0_dp)**transform ! reverse box-cox transformation
 
 
               !limit max value to obs_max_pcp + pcp_error (max station value plus some portion of error)
+              !obs_max_pcp has a upper bound of 5, and obs_max cannot be larger than 28. This may be good for
+              !daily_anom but not good for daily
               obs_max = 1.5*((((obs_max_pcp(isp1,isp2,istep)+0.2*cs)*(1.0/transform))+1.0)**transform)
               if(ra .gt. obs_max) then
                 ra = obs_max
@@ -629,7 +630,13 @@ program generate_ensembles
             elseif(trim(time_mode) .eq. 'climo' .or. trim(time_mode) .eq. 'CLIMO') then
               ra = real(pcp(isp1,isp2,istep),kind(dp)) + rn*real(pcp_error(isp1,isp2,istep),kind(dp))
               ra = ((ra*(1.0_dp/transform))+1.0_dp)**transform
-
+			  ! add by TGQ
+			  obs_max = 1.5*((((obs_max_pcp(isp1,isp2,istep)+0.2*cs)*(1.0/transform))+1.0)**transform)
+              if(ra .gt. obs_max) then
+                ra = obs_max
+              endif
+			  ! add by TGQ
+			  
               if(ra .lt. 0.01) then
                 pcp_out(isp1,isp2,istep) = 0.01
               else
