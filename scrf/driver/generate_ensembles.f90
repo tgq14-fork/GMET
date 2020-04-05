@@ -477,7 +477,7 @@ program generate_ensembles
   print *, 'Generating weights for spatially correlated random field (SCRF)...'
   ! revised by TGQ. A simple version
   ! spcc structure of prcp and first random number
-  call unix_to_date(times(floor(ntimes/2)+1),year,current_month,day,hour,minute,second)
+  call unix_to_date(times(ntimes/2+1),year,current_month,day,hour,minute,second)
   if(trim(time_mode) .eq. 'daily_anom' .or. trim(time_mode) .eq. 'DAILY_ANOM' .or. trim(time_mode) .eq. 'daily' .or. trim(time_mode) .eq. 'DAILY') then
     clen = clen_daily_prcp(current_month)
   elseif(trim(time_mode) .eq. 'climo' .or. trim(time_mode) .eq. 'CLIMO') then
