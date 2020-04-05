@@ -215,8 +215,14 @@ program generate_ensembles
   character(len=1024)   :: climo_file
   real(DP)              :: combined_error           !total error of daily anomaly uncertainty and climo uncertainty
   real(SP)              :: max_pcp                  !maximum allowable precip for a grid cell
-
-
+  ! add by TGQ. Regressed using station data for North America (km).
+  real(DP),dimension(12) :: clen_daily_tmean= (/1153.0, 1322.0, 1237.0, 1018.0, 961.0, 809.0, 600.0, 615.0, 1049.0, 1217.0, 1383.0, 1250/)
+  real(DP),dimension(12) :: clen_month_tmean= (/31,28,31,30,31,30,31,31,30,31,30,31/)
+  real(DP),dimension(12) :: clen_daily_prcp= (/303.0, 277.0, 236.0, 189.0, 125.0, 76.0, 47.0, 52.0, 126.0, 215.0, 250.0, 281.0/)
+  real(DP),dimension(12) :: clen_month_prcp= (/31,28,31,30,31,30,31,31,30,31,30,31/)
+  real(DP),dimension(12) :: clen_daily_trange= (/200.0, 191.0, 185.0, 229.0, 231.0, 211.0, 128.0, 121.0, 226.0, 430.0, 285.0, 171/)
+  real(DP),dimension(12) :: clen_month_trange= (/31,28,31,30,31,30,31,31,30,31,30,31/)
+  ! add by TGQ
 
   type (coords), pointer :: grid !coordinate structure for grid
   type (splnum), dimension (:, :), pointer :: sp_pcp, sp_temp ! structures of spatially correlated random field weights
@@ -462,14 +468,26 @@ program generate_ensembles
   grid%elv = hgt
  
   print *, 'Generating weights for spatially correlated random field (SCRF)...'
- 
+  ! revised by TGQ. A simple version
+  ! spcc structure of prcp and first random number
+  call unix_to_date(times(floor(ntimes/2)+1),year,current_month,day,hour,minute,second)
+  if(trim(time_mode) .eq. 'daily_anom' .or. trim(time_mode) .eq. 'DAILY_ANOM' .or. trim(time_mode) .eq. 'daily' .or. trim(time_mode) .eq. 'DAILY') then
+    clen = clen_daily_prcp(current_month)
+  elseif(trim(time_mode) .eq. 'climo' .or. trim(time_mode) .eq. 'CLIMO') then
+    clen = clen_month_prcp(current_month)
+  end if
   call spcorr_grd (nspl1, nspl2, grid)
   sp_pcp = spcorr !this is location, weigth, and std of previously generated points. it won't be changed.
  
   call field_rand (nspl1, nspl2, pcp_random)
  
-  ! setup sp_corr structure for temperature with larger correlation length
-  clen = 800.0 !rough estimate based on observations
+  ! setup sp_corr structure for tmean
+  ! clen = 800.0 !rough estimate based on observations
+  if(trim(time_mode) .eq. 'daily_anom' .or. trim(time_mode) .eq. 'DAILY_ANOM' .or. trim(time_mode) .eq. 'daily' .or. trim(time_mode) .eq. 'DAILY') then
+    clen = clen_daily_tmean(current_month)
+  elseif(trim(time_mode) .eq. 'climo' .or. trim(time_mode) .eq. 'CLIMO') then
+    clen = clen_month_tmean(current_month)
+  end if
   call spcorr_grd (nspl1, nspl2, grid)
   sp_temp = spcorr !this is location, weigth, and std of previously generated points. it won't be changed.
  
