@@ -7,7 +7,7 @@ clear
 
 EnsPath='/home/gut428/GMET/eCAI_EMDNA/output/NA_reg_ens';
 year=2018:2018;
-month=1:1;
+month=1:12;
 nens = 100;
 
 for yy=1:length(year)
@@ -36,7 +36,7 @@ for yy=1:length(year)
             [ens,x,y]=size(ensdata.pcp);
             %pcp sorted
             try
-                nccreate(outfile_psort,'pcp_sorted','Datatype','single','Dimensions',{'ens',ens,'x',x,'y',y});
+                nccreate(outfile_psort,'pcp_sorted','Datatype','single','Dimensions',{'ens',ens,'x',x,'y',y},'DeflateLevel',9);
             catch
                 fprintf('pcp_sorted exists in %s\n',outfile_psort);
             end
@@ -44,19 +44,19 @@ for yy=1:length(year)
             
             %pcp and temp mean
             try
-                nccreate(outfile_mean,'pcp','Datatype','single','Dimensions',{'x',x,'y',y});
+                nccreate(outfile_mean,'pcp','Datatype','single','Dimensions',{'x',x,'y',y},'DeflateLevel',9);
             catch
                 fprintf('pcp exists in %s\n',outfile_mean);
             end
             ncwrite(outfile_mean,'pcp',squeeze(mean(ensdata.pcp,1)));
             try
-                nccreate(outfile_mean,'t_mean','Datatype','single','Dimensions',{'x',x,'y',y});
+                nccreate(outfile_mean,'t_mean','Datatype','single','Dimensions',{'x',x,'y',y},'DeflateLevel',9);
             catch
                 fprintf('t_mean exists in %s\n',outfile_mean);
             end
             ncwrite(outfile_mean,'t_mean',squeeze(mean(ensdata.tmean,1)));
             try
-                nccreate(outfile_mean,'t_range','Datatype','single','Dimensions',{'x',x,'y',y});
+                nccreate(outfile_mean,'t_range','Datatype','single','Dimensions',{'x',x,'y',y},'DeflateLevel',9);
             catch
                 fprintf('t_range exists in %s\n',outfile_mean);
             end
@@ -64,13 +64,13 @@ for yy=1:length(year)
             
             % temp stddev
             try
-                nccreate(outfile_stddev,'t_mean_stddev','Datatype','single','Dimensions',{'x',x,'y',y});
+                nccreate(outfile_stddev,'t_mean_stddev','Datatype','single','Dimensions',{'x',x,'y',y},'DeflateLevel',9);
             catch
                 fprintf('t_mean_stddev exists in %s\n',outfile_stddev);
             end
             ncwrite(outfile_stddev,'t_mean_stddev',squeeze(ensdata.tmean_std));
             try
-                nccreate(outfile_stddev,'t_range_stddev','Datatype','single','Dimensions',{'x',x,'y',y});
+                nccreate(outfile_stddev,'t_range_stddev','Datatype','single','Dimensions',{'x',x,'y',y},'DeflateLevel',9);
             catch
                 fprintf('t_range_stddev exists in %s\n',outfile_stddev);
             end
