@@ -3,14 +3,13 @@ clear
 %station data and ensemble mean, and save those file in
 
 EnsPath='/home/gut428/GMET/eCAI_EMDNA/output/NA_reg_ens';
-StnClimoPath = '/home/gut428/GMET/StnInput_climatology'; % store climatological mean of prcp/temp
 StnAnomPath = '/home/gut428/GMET/StnInput_dailyanomaly'; % store the anomaly (ratio or difference) or prcp/temp
 StnDailyPath = '/home/gut428/GMET/StnInput_daily'; % original station time series
 StnGridInfoPath = '/home/gut428/GMET/eCAI_EMDNA/StnGridInfo'; % grid information
 StnInfoFile='/home/gut428/EMDNA/1StationInput/StnInfo.mat';
 
 year=2018:2018;
-month=1:1;
+month=1:12;
 
 % read station list
 load(StnInfoFile,'StnInfo');
@@ -30,7 +29,7 @@ datedaiy=datestr(datedaiy,'yyyymm');
 datedaiy=num2cell(datedaiy,2);
 datedaiy=str2double(datedaiy);
 
-for i = 1:nsta
+parfor i = 1:nsta
     fprintf('Processing %d--%d\n',i,nsta);
     %tgq: for each station, find the nearest grid cells
     %extract the mean of all ensembles, and calculate the ratio (pcp_a)
