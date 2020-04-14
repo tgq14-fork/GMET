@@ -2,7 +2,7 @@ clc;clear;
 %tgq: calculate the ratio (prcp) or difference (temperature) between
 %station data and ensemble mean, and save those file in
 
-EnsPath='/home/gut428/GMET/eCAI_EMDNA/output/NA_reg_ens';
+EnsPath='/home/gut428/GMET/eCAI_EMDNA/CV_output_1/NA_reg_ens';
 StnAnomPath = '/home/gut428/GMET/StnInput_dailyanomaly'; % store the anomaly (ratio or difference) or prcp/temp
 StnDailyPath = '/home/gut428/GMET/StnInput_daily'; % original station time series
 StnGridInfoPath = '/home/gut428/GMET/eCAI_EMDNA/StnGridInfo'; % grid information
