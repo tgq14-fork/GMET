@@ -1,4 +1,5 @@
 #git ignore file for GMET code
+.DS_Store
 
 #no .a or .o files
 *.[oa]
