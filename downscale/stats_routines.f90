@@ -244,7 +244,7 @@ subroutine calc_distance_weight (maxd, lat1, lon1, lat2, lon2, weight)
   if (dist .gt. maxd) then
     weight = 0.0d0
   else
-    weight = (1.0d0-(dist/maxd)**3) ** 3    ! inverse cubic for weight fcn
+    weight = (1.0d0-(dist/maxd)**1) ** 3    ! inverse cubic for weight fcn
     ! weight = 1.0d0 - (dist/maxd)**0.5
   end if
  
