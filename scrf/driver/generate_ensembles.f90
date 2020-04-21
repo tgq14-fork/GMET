@@ -572,11 +572,15 @@ program generate_ensembles
             ra = (real(pcp(isp1, isp2, istep), kind(dp))*real(y_std(isp1, isp2, istep), kind(dp))) &
            & + real (y_mean(isp1, isp2, istep), kind(dp)) + real (y_std(isp1, isp2, istep), &
            & kind(dp)) * rn * real (pcp_error(isp1, isp2, istep), kind(dp))
- 
+ 		   
+!  		    ra = ((ra*(1.0_dp/4.0_dp))+1.0_dp)**transform
+!  		    if(ra .lt. 0.01) then
+!  		      ra = 0.01
+!  		    end if
             if (ra .gt. 0.0) then
-              ra = ra ** transform
+             ra = ra ** transform
             else
-              ra = 0.01
+             ra = 0.01
             end if
  
  
@@ -586,6 +590,9 @@ program generate_ensembles
               ra = (real(y_max(isp1, isp2, istep), kind(dp))+0.2*real(pcp_error(isp1, isp2, istep), &
              & kind(dp))) ** transform
             end if
+!             if(ra .gt. 1.5*((((y_max(isp1,isp2,istep)+0.2*cs)*(1.0/4.0))+1.0)**4.0) ) then
+!               ra = 1.5*((((y_max(isp1,isp2,istep)+0.2*cs)*(1.0/4.0))+1.0)**4.0)
+!             endif
  
  
             pcp_out (isp1, isp2, istep) = real (ra, kind(sp))

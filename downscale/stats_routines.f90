@@ -158,9 +158,11 @@ subroutine normalize_y (texp, y)
 !    Y(t) = Y(t) ** (1.0d0/4d0)
 
     if(Y(t) > 0) then
-      y (t) = y (t) ** (1.0d0/texp)
+     y (t) = y (t) ** (1.0d0/texp)
+! 	  y(t) = ((Y(t)**(1.0/texp))-1.0)/(1.0/texp)
     else
-      y (t) = 0
+     y (t) = 0
+!       y (t) = -3.0
     end if 
   end do
  
@@ -244,7 +246,7 @@ subroutine calc_distance_weight (maxd, lat1, lon1, lat2, lon2, weight)
   if (dist .gt. maxd) then
     weight = 0.0d0
   else
-    weight = (1.0d0-(dist/maxd)**1) ** 3    ! inverse cubic for weight fcn
+    weight = (1.0d0-(dist/maxd)**3) ** 3    ! inverse cubic for weight fcn
     ! weight = 1.0d0 - (dist/maxd)**0.5
   end if
  
