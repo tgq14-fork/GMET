@@ -24,9 +24,6 @@ bin/
 *.exe
 
 # others
-from_NR/*.f90
-downscale/numrec.f90
-from_NR.tgz
 
 # no text files (OK)
 # *.txt
