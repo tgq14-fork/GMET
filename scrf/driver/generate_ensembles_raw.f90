@@ -39,34 +39,18 @@ program generate_ensembles
       integer, intent (out) :: error
     end subroutine read_grid_list
  
-!     subroutine save_vars (pcp, tmean, trange, nx, ny, grdlat, grdlon, grdalt, times, file, error)
-!       use netcdf
-!       use nrtype
-!  
-!       real (sp), intent (in) :: pcp (:, :, :), tmean (:, :, :), trange (:, :, :)
-!       integer (i4b), intent (in) :: nx, ny
-!       real (dp), intent (in) :: grdlat (:), grdlon (:), grdalt (:)
-!       real (dp), intent (in) :: times (:)
-!       character (len=500), intent (in) :: file
-!       integer, intent (out) :: error
-!     end subroutine save_vars
- 	
- 	! Add by TGQ
- 	subroutine save_vars (pcp, tmean, trange, pcp_rndnum, pcp_cprob, tmean_rndnum, trange_rndnum, &
-   & nx, ny, grdlat, grdlon, grdalt, times, file, error)
+    subroutine save_vars (pcp, tmean, trange, nx, ny, grdlat, grdlon, grdalt, times, file, error)
       use netcdf
       use nrtype
  
       real (sp), intent (in) :: pcp (:, :, :), tmean (:, :, :), trange (:, :, :)
-      real (sp), intent (in) :: pcp_rndnum (:, :, :), pcp_cprob(:, :, :), tmean_rndnum (:, :, :), trange_rndnum (:, :, :)
       integer (i4b), intent (in) :: nx, ny
       real (dp), intent (in) :: grdlat (:), grdlon (:), grdalt (:)
       real (dp), intent (in) :: times (:)
       character (len=500), intent (in) :: file
       integer, intent (out) :: error
     end subroutine save_vars
- 	! Add by TGQ
- 	
+ 
     subroutine read_grid_qpe_nc_ens (file_name, var_name, var, lats, lons, auto_corr, tp_corr, &
    & times, tot_times, error)
       use netcdf
@@ -205,12 +189,6 @@ program generate_ensembles
   real (sp), allocatable :: pcp_out (:, :, :)!
   real (sp), allocatable :: tmean_out (:, :, :)!
   real (sp), allocatable :: trange_out (:, :, :)!
-  ! Add by TGQ
-  real (sp), allocatable :: pcp_rndnum (:, :, :)!
-  real (sp), allocatable :: pcp_cprob (:, :, :)!
-  real (sp), allocatable :: tmean_rndnum (:, :, :)!
-  real (sp), allocatable :: trange_rndnum (:, :, :)!
-  ! Add by TGQ
   integer (i4b) :: nx, ny !grid size
   integer (i4b) :: spl1_start, spl2_start !starting point of x,y grid
   integer (i4b) :: spl1_count, spl2_count !length of x,y grid
@@ -390,10 +368,9 @@ program generate_ensembles
   if (ierr /= 0) stop
  
   !sanity check on the observed maximum value in transformed anomaly space
-  ! TGQ: 5 is too small.
-!   where(obs_max_pcp .gt. 5.)
-!     obs_max_pcp = 5.0
-!   end where
+  where(obs_max_pcp .gt. 5.)
+    obs_max_pcp = 5.0
+  end where
 
   ! set up a few variables for spcorr structure
   nspl1 = nx
@@ -474,16 +451,6 @@ program generate_ensembles
   pcp_out = 0.0
   tmean_out = 0.0
   trange_out = 0.0
-  
-  ! Add by TGQ
-  allocate (pcp_rndnum(nx, ny, ntimes), tmean_rndnum(nx, ny, ntimes), trange_rndnum(nx, ny, ntimes), &
- & pcp_cprob(nx, ny, ntimes), stat=ierr)
-  if (ierr .ne. 0) call exit_scrf (1, 'problem allocating for 2-d output random numbers')
-  pcp_rndnum = 0.0
-  pcp_cprob = 0.0
-  tmean_rndnum = 0.0
-  trange_rndnum = 0.0
-  ! Add by TGQ
  
   lon_out = pack (lon, .true.)
   lat_out = pack (lat, .true.)
@@ -585,13 +552,6 @@ program generate_ensembles
           acorr = real (pcp_random(isp1, isp2), kind(sp)) / sqrt (2._sp)
           aprob = erfcc (acorr)
           cprob = (2.d0-real(aprob, kind(dp))) / 2.d0
-          
-          ! Add by TGQ
-          pcp_rndnum (isp1, isp2, istep) = pcp_random(isp1, isp2)
-          tmean_rndnum (isp1, isp2, istep) = tmean_random(isp1, isp2)
-          trange_rndnum (isp1, isp2, istep) = trange_random(isp1, isp2)
-          pcp_cprob (isp1, isp2, istep) = cprob
-          ! Add by TGQ
  
           ! check thresholds of slope fields to see which regression to use
           if (cprob .lt. (1.0_dp-real(pop(isp1, isp2, istep), kind(dp)))) then 
@@ -646,25 +606,13 @@ program generate_ensembles
               endif
               ra =  real(pcp(isp1,isp2,istep),kind(dp))+rn*real(pcp_error(isp1,isp2,istep),kind(dp))
               ra = ((ra*(1.0/transform))+1.0_dp)**transform
-			  
-			  ! Add by TGQ for checking
-			!   if ((isp1 .eq. 857) .and. (isp2 .eq. 262) .and. (istep .eq. 1)) then
-! 			    print *, 'cs is ', cs
-! 			  	print *, 'rn is ', rn
-! 			  	print *, 'ra is ', ra
-! 			  endif
+
 
               !limit max value to obs_max_pcp + pcp_error (max station value plus some portion of error)
               obs_max = 1.5*((((obs_max_pcp(isp1,isp2,istep)+0.2*cs)*(1.0/transform))+1.0)**transform)
               if(ra .gt. obs_max) then
                 ra = obs_max
               endif
-              
-              ! Add by TGQ for checking
-!               if ((isp1 .eq. 857) .and. (isp2 .eq. 262) .and. (istep .eq. 1)) then
-! 			    print *, 'obs_max is', obs_max_pcp(isp1,isp2,istep), obs_max
-! 			  	print *, 'ra is ', ra
-! 			  endif
 
               pcp_out(isp1,isp2,istep) = ra
 
@@ -782,11 +730,11 @@ program generate_ensembles
     print *, trim (out_name)
  
     ! save to netcdf file
-    call save_vars (pcp_out, tmean_out, trange_out, pcp_rndnum, pcp_cprob, tmean_rndnum, trange_rndnum, nx, ny, lat_out, lon_out, hgt_out, &
+    call save_vars (pcp_out, tmean_out, trange_out, nx, ny, lat_out, lon_out, hgt_out, &
    & times(start_time:start_time+ntimes-1), out_name, ierr)
   
     if (ierr /= 0) stop
- 	
+ 
     ! reset out_name
     out_name = out_forc_name_base
  

@@ -1,11 +1,9 @@
-subroutine save_vars (pcp, tmean, trange, pcp_rndnum, pcp_cprob, tmean_rndnum, trange_rndnum, &
-  & nx, ny, grdlat, grdlon, grdalt, times, file, error)
+subroutine save_vars (pcp, tmean, trange, nx, ny, grdlat, grdlon, grdalt, times, file, error)
   use netcdf
   use nrtype
   implicit none
 !
   real (sp), intent (in) :: pcp (:, :, :), tmean (:, :, :), trange (:, :, :)
-  real (sp), intent (in) :: pcp_rndnum (:, :, :), pcp_cprob(:, :, :), tmean_rndnum (:, :, :), trange_rndnum (:, :, :)
   integer (i4b), intent (in) :: nx, ny
   real (dp), intent (in) :: grdlat (:), grdlon (:), grdalt (:)
   real (dp), intent (in) :: times (:)
@@ -25,10 +23,6 @@ subroutine save_vars (pcp, tmean, trange, pcp_rndnum, pcp_cprob, tmean_rndnum, t
   character (len=*), parameter :: pcp_name = "pcp"
   character (len=*), parameter :: pop_name = "t_mean"
   character (len=*), parameter :: pcp_error_name = "t_range"
-  character (len=*), parameter :: pcprnd_name = "pcp_rndnum"
-  character (len=*), parameter :: pcpcprob_name = "pcp_cprob"
-  character (len=*), parameter :: tmeanrnd_name = "tmean_rndnum"
-  character (len=*), parameter :: trangernd_name = "trange_rndnum"
 !
   character (len=*), parameter :: long_name = "long_name"
   character (len=*), parameter :: pcp_long_name = "estimated precip in mm/day"
@@ -50,8 +44,7 @@ subroutine save_vars (pcp, tmean, trange, pcp_rndnum, pcp_cprob, tmean_rndnum, t
 !
   integer :: n_chars, n_times, inx, iny
   integer :: ncid, x_dimid, y_dimid, time_dimid
-  integer :: lat_varid, lon_varid, alt_varid, time_varid, pcp_varid, pop_varid, pcp_error_varid, &
- & pcprnd_varid, pcpcprob_varid, tmeanrnd_varid, trangernd_varid
+  integer :: lat_varid, lon_varid, alt_varid, time_varid, pcp_varid, pop_varid, pcp_error_varid
   integer :: count1 (1), start1 (1), count2 (2), start2 (2), count3 (3), start3 (3), dimids2 (2), &
  & dimids3 (3)
   integer :: trec, nrecs, file_nx, file_ny, file_ntimes, i
@@ -104,17 +97,6 @@ subroutine save_vars (pcp, tmean, trange, pcp_rndnum, pcp_cprob, tmean_rndnum, t
    & error)
     call check (nf90_def_var(ncid, pcp_error_name, nf90_float, dimids3, pcp_error_varid), "pcp_erro&
    &r var def error", error)
-   
-   ! Add by TGQ
-    call check (nf90_def_var(ncid, pcprnd_name, nf90_float, dimids3, pcprnd_varid), "pcp rndnum", &
-   & error)
-    call check (nf90_def_var(ncid, pcpcprob_name, nf90_float, dimids3, pcpcprob_varid), "pcp cprob", &
-   & error)
-    call check (nf90_def_var(ncid, tmeanrnd_name, nf90_float, dimids3, tmeanrnd_varid), "tmean rndnum", &
-   & error)
-   call check (nf90_def_var(ncid, trangernd_name, nf90_float, dimids3, trangernd_varid), "trange rndnum", &
-   & error)
-   ! Add by TGQ
     if (error /= 0) return
 
     ! Add attributes.
@@ -238,18 +220,6 @@ subroutine save_vars (pcp, tmean, trange, pcp_rndnum, pcp_cprob, tmean_rndnum, t
   call check (nf90_put_var(ncid, pcp_error_varid, trange, start=start3, count=count3), "put trange &
  &error", error)
   if (error /= 0) return
-  
-  ! Add by TGQ
-  call check (nf90_put_var(ncid, pcprnd_varid, pcp_rndnum, start=start3, count=count3), "put pcp rndnum", error)
-  if (error /= 0) return
-  call check (nf90_put_var(ncid, pcpcprob_varid, pcp_cprob, start=start3, count=count3), "put pcp cprob", error)
-  if (error /= 0) return
-  call check (nf90_put_var(ncid, tmeanrnd_varid, tmean_rndnum, start=start3, count=count3), "put tmean rndnum", error)
-  if (error /= 0) return
-  call check (nf90_put_var(ncid, trangernd_varid, trange_rndnum, start=start3, count=count3), "put trange rndnum", error)
-  if (error /= 0) return
-  ! Add by TGQ
-  
 !
   call check (nf90_close(ncid), "closing file error", error)
 !
