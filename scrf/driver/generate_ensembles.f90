@@ -646,25 +646,12 @@ program generate_ensembles
               endif
               ra =  real(pcp(isp1,isp2,istep),kind(dp))+rn*real(pcp_error(isp1,isp2,istep),kind(dp))
               ra = ((ra*(1.0/transform))+1.0_dp)**transform
-			  
-			  ! Add by TGQ for checking
-			!   if ((isp1 .eq. 857) .and. (isp2 .eq. 262) .and. (istep .eq. 1)) then
-! 			    print *, 'cs is ', cs
-! 			  	print *, 'rn is ', rn
-! 			  	print *, 'ra is ', ra
-! 			  endif
 
               !limit max value to obs_max_pcp + pcp_error (max station value plus some portion of error)
               obs_max = 1.5*((((obs_max_pcp(isp1,isp2,istep)+0.2*cs)*(1.0/transform))+1.0)**transform)
               if(ra .gt. obs_max) then
                 ra = obs_max
               endif
-              
-              ! Add by TGQ for checking
-!               if ((isp1 .eq. 857) .and. (isp2 .eq. 262) .and. (istep .eq. 1)) then
-! 			    print *, 'obs_max is', obs_max_pcp(isp1,isp2,istep), obs_max
-! 			  	print *, 'ra is ', ra
-! 			  endif
 
               pcp_out(isp1,isp2,istep) = ra
 
@@ -727,6 +714,7 @@ program generate_ensembles
           end if  !end of time_mode check for temperature
 
           ! check for unrealistic and non-physical trange values
+          ! values are from wiki: https://en.wikipedia.org/wiki/List_of_weather_records#North_America
           if (trange_out(isp1, isp2, istep) .gt. 40.0) then
             trange_out (isp1, isp2, istep) = 40.0
           else if (trange_out(isp1, isp2, istep) .lt. 1.0) then
@@ -734,10 +722,10 @@ program generate_ensembles
           end if
  
           ! check for unrealistic tmean values
-          if (tmean_out(isp1, isp2, istep) .gt. 50.0) then
-            tmean_out (isp1, isp2, istep) = 50.0
-          else if (tmean_out(isp1, isp2, istep) .lt.-50.0) then
-            tmean_out (isp1, isp2, istep) = -50.0
+          if (tmean_out(isp1, isp2, istep) .gt. 56.0) then
+            tmean_out (isp1, isp2, istep) = 56.0
+          else if (tmean_out(isp1, isp2, istep) .lt.-66.0) then
+            tmean_out (isp1, isp2, istep) = -66.0
           end if
  
         else  !if elevation not valid, fill with missing
