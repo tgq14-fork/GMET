@@ -50,7 +50,23 @@ program generate_ensembles
       character (len=500), intent (in) :: file
       integer, intent (out) :: error
     end subroutine save_vars
+ 	
+ 	! Add by TGQ
+ 	subroutine save_vars_rndnum (pcp, tmean, trange, pcp_rndnum, pcp_cprob, tmean_rndnum, trange_rndnum, &
+   & nx, ny, grdlat, grdlon, grdalt, times, file, error)
+      use netcdf
+      use nrtype
  
+      real (sp), intent (in) :: pcp (:, :, :), tmean (:, :, :), trange (:, :, :)
+      real (sp), intent (in) :: pcp_rndnum (:, :, :), pcp_cprob(:, :, :), tmean_rndnum (:, :, :), trange_rndnum (:, :, :)
+      integer (i4b), intent (in) :: nx, ny
+      real (dp), intent (in) :: grdlat (:), grdlon (:), grdalt (:)
+      real (dp), intent (in) :: times (:)
+      character (len=500), intent (in) :: file
+      integer, intent (out) :: error
+    end subroutine save_vars_rndnum
+ 	! Add by TGQ
+ 	
     subroutine read_grid_qpe_nc_ens (file_name, var_name, var, lats, lons, auto_corr, tp_corr, &
    & times, tot_times, error)
       use netcdf
@@ -189,6 +205,12 @@ program generate_ensembles
   real (sp), allocatable :: pcp_out (:, :, :)!
   real (sp), allocatable :: tmean_out (:, :, :)!
   real (sp), allocatable :: trange_out (:, :, :)!
+  ! Add by TGQ
+  real (sp), allocatable :: pcp_rndnum (:, :, :)!
+  real (sp), allocatable :: pcp_cprob (:, :, :)!
+  real (sp), allocatable :: tmean_rndnum (:, :, :)!
+  real (sp), allocatable :: trange_rndnum (:, :, :)!
+  ! Add by TGQ
   integer (i4b) :: nx, ny !grid size
   integer (i4b) :: spl1_start, spl2_start !starting point of x,y grid
   integer (i4b) :: spl1_count, spl2_count !length of x,y grid
@@ -375,8 +397,9 @@ program generate_ensembles
   if (ierr /= 0) stop
  
   !sanity check on the observed maximum value in transformed anomaly space
-  where(obs_max_pcp .gt. 5.)
-    obs_max_pcp = 5.0
+  ! just set a loose constraint here.
+  where(obs_max_pcp .gt. 20.)
+    obs_max_pcp = 20.0
   end where
 
   ! set up a few variables for spcorr structure
@@ -465,6 +488,16 @@ program generate_ensembles
   pcp_out = 0.0
   tmean_out = 0.0
   trange_out = 0.0
+  
+  ! Add by TGQ
+  allocate (pcp_rndnum(nx, ny, ntimes), tmean_rndnum(nx, ny, ntimes), trange_rndnum(nx, ny, ntimes), &
+ & pcp_cprob(nx, ny, ntimes), stat=ierr)
+  if (ierr .ne. 0) call exit_scrf (1, 'problem allocating for 2-d output random numbers')
+  pcp_rndnum = 0.0
+  pcp_cprob = 0.0
+  tmean_rndnum = 0.0
+  trange_rndnum = 0.0
+  ! Add by TGQ
  
   lon_out = pack (lon, .true.)
   lat_out = pack (lat, .true.)
@@ -518,7 +551,7 @@ program generate_ensembles
 
   if(trim(time_mode) .eq. 'daily' .or. trim(time_mode) .eq. 'DAILY') then
     ! set transform power, shouldn't be hard-coded, but it is for now...
-    transform = 4.0d0
+    transform = 3.0d0 ! according to Newman 2019
   elseif(trim(time_mode) .eq. 'climo' .or. trim(time_mode) .eq. 'CLIMO') then
     transform = 4.0d0
   elseif(trim(time_mode) .eq. 'daily_anom' .or. trim(time_mode) .eq. 'DAILY_ANOM') then
@@ -590,6 +623,13 @@ program generate_ensembles
           acorr = real (pcp_random(isp1, isp2), kind(sp)) / sqrt (2._sp)
           aprob = erfcc (acorr)
           cprob = (2.d0-real(aprob, kind(dp))) / 2.d0
+          
+          ! Add by TGQ
+          pcp_rndnum (isp1, isp2, istep) = pcp_random(isp1, isp2)
+          tmean_rndnum (isp1, isp2, istep) = tmean_random(isp1, isp2)
+          trange_rndnum (isp1, isp2, istep) = trange_random(isp1, isp2)
+          pcp_cprob (isp1, isp2, istep) = cprob
+          ! Add by TGQ
  
           ! check thresholds of slope fields to see which regression to use
           if (cprob .lt. (1.0_dp-real(pop(isp1, isp2, istep), kind(dp)))) then 
@@ -731,10 +771,11 @@ program generate_ensembles
           end if
  
           ! check for unrealistic tmean values
-          if (tmean_out(isp1, isp2, istep) .gt. 50.0) then
-            tmean_out (isp1, isp2, istep) = 50.0
-          else if (tmean_out(isp1, isp2, istep) .lt.-50.0) then
-            tmean_out (isp1, isp2, istep) = -50.0
+          ! values are from wiki: https://en.wikipedia.org/wiki/List_of_weather_records#North_America
+          if (tmean_out(isp1, isp2, istep) .gt. 56.0) then
+            tmean_out (isp1, isp2, istep) = 56.0
+          else if (tmean_out(isp1, isp2, istep) .lt.-66.0) then
+            tmean_out (isp1, isp2, istep) = -66.0
           end if
  
         else  !if elevation not valid, fill with missing
@@ -781,7 +822,10 @@ program generate_ensembles
     print *, trim (out_name)
  
     ! save to netcdf file
-    call save_vars (pcp_out, tmean_out, trange_out, nx, ny, lat_out, lon_out, hgt_out, &
+    ! call save_vars (pcp_out, tmean_out, trange_out, nx, ny, lat_out, lon_out, hgt_out, &
+!    & times(start_time:start_time+ntimes-1), out_name, ierr)
+   
+   call save_vars_rndnum (pcp_out, tmean_out, trange_out, pcp_rndnum, pcp_cprob, tmean_rndnum, trange_rndnum, nx, ny, lat_out, lon_out, hgt_out, &
    & times(start_time:start_time+ntimes-1), out_name, ierr)
   
     if (ierr /= 0) stop

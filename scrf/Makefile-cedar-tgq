@@ -66,6 +66,7 @@ prob_qpe= \
 		stringmod.f90 \
 		save_precip.f90 \
 		save_vars.f90 \
+		save_vars_rndnum.f90 \
 		read_nc_grid.f90 \
 		read_grid_list.f90 \
 		read_climo_precip.f90 \
