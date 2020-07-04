@@ -741,12 +741,16 @@ program generate_ensembles
 
           elseif(trim(time_mode) .eq. 'daily' .or. trim(time_mode) .eq. 'DAILY') then
             !TMEAN
-            ra = real(tmean(isp1,isp2,istep),kind(dp)) + real(tmean_random(isp1,isp2),kind(dp))*real(tmean_error(isp1,isp2,istep)/3.0,kind(dp))
+            ! Add by TGQ: 
+            ra = real(tmean(isp1,isp2,istep),kind(dp)) + real(tmean_random(isp1,isp2),kind(dp))*real(tmean_error(isp1,isp2,istep),kind(dp)) 
+            ! ra = real(tmean(isp1,isp2,istep),kind(dp)) + real(tmean_random(isp1,isp2),kind(dp))*real(tmean_error(isp1,isp2,istep)/3.0,kind(dp))
             tmean_out(isp1,isp2,istep) = real(ra,kind(sp))
             !error term for tmean seems unrealistically large in many to all situations...  Limit to roughly +/- 1 std of error rather than ~+/- 3 std
 
             !trange
-            ra = real(trange(isp1,isp2,istep),kind(dp)) + real(trange_random(isp1,isp2),kind(dp))*real(trange_error(isp1,isp2,istep)/3.0,kind(dp))
+            ! Add by TGQ
+            ra = real(trange(isp1,isp2,istep),kind(dp)) + real(trange_random(isp1,isp2),kind(dp))*real(trange_error(isp1,isp2,istep),kind(dp))
+            ! ra = real(trange(isp1,isp2,istep),kind(dp)) + real(trange_random(isp1,isp2),kind(dp))*real(trange_error(isp1,isp2,istep)/3.0,kind(dp))
             trange_out(isp1,isp2,istep) = real(ra,kind(sp))
             !error term for trange seems unrealistically large in many to all situations...  Limit to roughly +/- 1 std of error rather than ~+/- 3 std
           elseif(trim(time_mode) .eq. 'climo' .or. trim(time_mode) .eq. 'CLIMO') then
