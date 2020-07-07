@@ -178,6 +178,8 @@ program generate_ensembles
   real(DP),dimension(12) :: clen_month_prcp= (/501.0, 384.0, 325.0, 357.0, 349.0, 283.0, 204.0, 180.0, 280.0, 422.0, 453.0, 449.0/)
   real(DP),dimension(12) :: clen_daily_trange= (/200.0, 191.0, 185.0, 229.0, 231.0, 211.0, 128.0, 121.0, 226.0, 430.0, 285.0, 171.0/)
   real(DP),dimension(12) :: clen_month_trange= (/573.0, 537.0, 379.0, 361.0, 368.0, 423.0, 308.0, 198.0, 399.0, 805.0, 696.0, 515.0/)
+  real(DP),dimension(12) :: auto_corr_daily= (/0.629, 0.636, 0.648, 0.634, 0.650, 0.620, 0.559, 0.561, 0.633, 0.654, 0.652, 0.643/)
+  real(DP),dimension(12) :: tp_corr_daily= (/-0.167, -0.221, -0.246, -0.277, -0.279, -0.261, -0.229, -0.249, -0.287, -0.266, -0.199, -0.151/)
   ! add by TGQ
 
   type (coords), pointer :: grid !coordinate structure for grid
@@ -188,7 +190,7 @@ program generate_ensembles
   integer (i4b), dimension (:,:,:), allocatable :: sp_ipos, sp_jpos
   integer (i4b), dimension (:,:), allocatable ::sp_num
   logical :: file_exists
-  integer (i4b) :: initflag = 1
+  integer (i4b) :: initflag
   ! ========== code starts below ==============================
  
   ! AWW: get namelist filename from command line (no longer hardwired)
@@ -212,12 +214,8 @@ program generate_ensembles
   ! AW set number of ensembles to generate
   !TGQ: the codes are repeated?
   nens = stop_ens - start_ens + 1
-  if(nens <= 0) call exit_scrf (1, 'number of ensembles to generate is 0 or less')
   print*, 'Generating ',nens,' ensembles from ',start_ens,' to ',stop_ens
-  nens = stop_ens - start_ens + 1
-  if(stop_ens <= start_ens) call exit_scrf (1, 'stop_ens equal or before start_ens')
-  print*, 'Generating ',nens,' ensembles from ',start_ens,' to ',stop_ens
- 
+
   !read in netcdf grid file
   call read_nc_grid (grid_name, lat, lon, hgt, slp_n, slp_e, mask, nx, ny, error)
  
@@ -225,25 +223,8 @@ program generate_ensembles
  
   allocate (lat_out(nx*ny), lon_out(nx*ny), hgt_out(nx*ny), stat=ierr)
   if (ierr .ne. 0) call exit_scrf (1, 'problem allocating for 1-d output variables')
- 
 
- 
-  allocate (times(ntimes))
-  allocate (auto_corr(ntimes))
-  allocate (tpc_corr(ntimes))
   
-  var_name = 'auto_corr'
-  error = nf90_inq_varid (ncid, var_name, varid)
-  if (ierr /= 0) stop
-  error = nf90_get_var (ncid, varid, auto_corr, start= (/ start_time /), count= (/ ntimes /))
-  if (ierr /= 0) stop
- 
-  var_name = 'tp_corr'
-  error = nf90_inq_varid (ncid, var_name, varid)
-  if (ierr /= 0) stop
-  error = nf90_get_var (ncid, varid, tpc_corr, start= (/ start_time /), count= (/ ntimes /))
-  if (ierr /= 0) stop
-
   ! set up a few variables for spcorr structure
   nspl1 = nx
   nspl2 = ny
@@ -324,12 +305,12 @@ program generate_ensembles
   
   ! --------------------------------------------------------------------------------------
   print *, 'Generating spatial correlation structure for every month'
-  do mm = 1, 1
+  do mm = 1, 2
       print *,'Processing month', mm
       write( mmstr, '(i2)' )  mm
       ! prcp
 	  clen = clen_daily_prcp(mm)
-	  out_name = trim('spcorr_prcp_month_') // trim(mmstr)
+	  out_name =  trim(out_forc_name_base) // '/' // trim('spcorr_prcp_month_') // trim(mmstr)
 	  INQUIRE(FILE=out_name, EXIST=file_exists)
 	  if (.NOT. file_exists) then
 	      if (allocated(sp_wght)) deallocate (sp_wght)
@@ -367,7 +348,7 @@ program generate_ensembles
 	  
 	  ! tmean
 	  clen = clen_daily_tmean(mm)
-	  out_name = trim('spcorr_tmean_month_') // trim(mmstr)
+	  out_name = trim(out_forc_name_base) // '/' // trim('spcorr_tmean_month_') // trim(mmstr)
 	  INQUIRE(FILE=out_name, EXIST=file_exists)
 	  if (.NOT. file_exists) then
 	      if (allocated(sp_wght)) deallocate (sp_wght)
@@ -405,7 +386,7 @@ program generate_ensembles
 	  
 	  ! trange
 	  clen = clen_daily_trange(mm)
-	  out_name = trim('spcorr_trange_month_') // trim(mmstr)
+	  out_name = trim(out_forc_name_base) // '/' // trim('spcorr_trange_month_') // trim(mmstr)
 	  INQUIRE(FILE=out_name, EXIST=file_exists)
 	  if (.NOT. file_exists) then
 	      if (allocated(sp_wght)) deallocate (sp_wght)
@@ -442,14 +423,15 @@ program generate_ensembles
 	  end if
   end do ! end loop mm
   
-  
+  print *, 'Generating a useless SCRF'
   call spcorr_grd (nspl1, nspl2, grid) ! necessary to produce iorder and jorder
   
   ! --------------------------------------------------------------------------------------
   print *, 'Generating SCRF for every month'
-  do iens = 1, 2
-    do i = 1979, 1979
-      do j = 1, 1
+  do iens = start_ens, stop_ens
+    initflag = 1 ! different ensemble members are independent with each other
+    do i = 1979, 2018
+      do j = 1, 12
         print *, 'Processing ens/year/month', iens, i, j
         write( mmstr, '(i2)' )  j
         ! --------------------------------------------------------------------------------
@@ -460,7 +442,7 @@ program generate_ensembles
         if (associated(sp_trange)) deallocate (sp_trange, stat=ierr)
         allocate (sp_pcp(nspl1, nspl2),sp_temp(nspl1, nspl2),sp_trange(nspl1, nspl2), stat=ierr)
         ! prcp
-          out_name = trim('spcorr_prcp_month_') // trim(mmstr)
+          out_name = trim(out_forc_name_base) // '/' // trim('spcorr_prcp_month_') // trim(mmstr)
           if (allocated(sp_wght)) deallocate (sp_wght)
 	      if (allocated(sp_ipos)) deallocate (sp_ipos)
 	      if (allocated(sp_jpos)) deallocate (sp_jpos)
@@ -494,7 +476,7 @@ program generate_ensembles
 		  end do
 		  sp_pcp = spcorr
 		! tmean
-          out_name = trim('spcorr_tmean_month_') // trim(mmstr)
+          out_name = trim(out_forc_name_base) // '/' // trim('spcorr_tmean_month_') // trim(mmstr)
           if (allocated(sp_wght)) deallocate (sp_wght)
 	      if (allocated(sp_ipos)) deallocate (sp_ipos)
 	      if (allocated(sp_jpos)) deallocate (sp_jpos)
@@ -528,7 +510,7 @@ program generate_ensembles
 		  end do
 		  sp_temp = spcorr
 		! trange
-          out_name = trim('spcorr_trange_month_') // trim(mmstr)
+          out_name = trim(out_forc_name_base) // '/' // trim('spcorr_trange_month_') // trim(mmstr)
           if (allocated(sp_wght)) deallocate (sp_wght)
 	      if (allocated(sp_ipos)) deallocate (sp_ipos)
 	      if (allocated(sp_jpos)) deallocate (sp_jpos)
@@ -589,8 +571,8 @@ program generate_ensembles
 		  print *, 'generate random numbers'
 		  
 		  do istep = 1, ntimes
-		      print *, 'time step', istep
 			  if (initflag .eq. 1) then
+			    print *, 'init time step', istep
 			  	spcorr = sp_pcp
 			    call field_rand (nspl1, nspl2, pcp_random)
 			    pcp_rndnum(:, :, istep) = pcp_random
@@ -604,19 +586,20 @@ program generate_ensembles
 				trange_rndnum(:, :, istep) = trange_random
 				initflag = 0
 			  else
+			    print *, 'time step', istep
 			    spcorr = sp_temp
                 old_random = tmean_random
       			call field_rand (nspl1, nspl2, tmean_random)
-      			pcp_rndnum(:, :, istep) = old_random * auto_corr (1) + sqrt (1-auto_corr(1)*auto_corr(1)) * tmean_random
+      			tmean_rndnum(:, :, istep) = old_random * auto_corr_daily(j) + sqrt (1-auto_corr_daily(j)*auto_corr_daily(j)) * tmean_random
       			
       			spcorr = sp_trange
       			old_random = trange_random
       			call field_rand (nspl1, nspl2, trange_random)
-      			tmean_rndnum(:, :, istep) = old_random * auto_corr (1) + sqrt (1-auto_corr(1)*auto_corr(1)) * trange_random
+      			trange_rndnum(:, :, istep) = old_random * auto_corr_daily(j) + sqrt (1-auto_corr_daily(j)*auto_corr_daily(j)) * trange_random
  
       			spcorr = sp_pcp
       			call field_rand (nspl1, nspl2, pcp_random)
-      			trange_rndnum(:, :, istep) = trange_random * tpc_corr (1) + sqrt (1-tpc_corr(1)*tpc_corr(1)) * pcp_random
+      			pcp_rndnum(:, :, istep) = trange_random * tp_corr_daily (j) + sqrt (1-tp_corr_daily (j)*tp_corr_daily (j)) * pcp_random
 			  end if
 		  end do ! end days
 		  ! --------------------------------------------------------------------------------
@@ -624,7 +607,7 @@ program generate_ensembles
 		  print *, 'save random numbers to nc file'
 		  write( mmstr, '(i6)' )  i*100+j
 		  write (suffix, '(I3.3)') iens
-		  out_name = '/Users/localuser/GMET/test0622/SCRF/scrf.' // trim(mmstr) // '.' // trim(suffix) // '.nc'
+		  out_name = trim(out_forc_name_base) // '/scrf.' // trim(mmstr) // '.' // trim(suffix) // '.nc'
 		  call save_rndnum (pcp_rndnum, tmean_rndnum, trange_rndnum, nx, ny, ntimes, lat_out, lon_out, hgt_out, out_name, ierr)
 
       end do !end month

@@ -108,11 +108,11 @@ FLAGS = -p -g -Wall -ffree-line-length-none -fmax-errors=0 -fbacktrace -fcheck=b
 
 # Define the driver routine
 SCRF_DRIVER= \
-	test.f90
+	generate_rndnum.f90
 DRIVER = $(patsubst %, $(DRIVER_DIR)/%, $(SCRF_DRIVER))
 
 # name of executable
-EXE = enstest.exe
+EXE = generate_rndnum.exe
 
 #========================================================================
 # PART 3: Checks
