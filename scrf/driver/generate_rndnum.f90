@@ -305,7 +305,7 @@ program generate_ensembles
   
   ! --------------------------------------------------------------------------------------
   print *, 'Generating spatial correlation structure for every month'
-  do mm = 1, 2
+  do mm = 1, 12
       print *,'Processing month', mm
       write( mmstr, '(i2)' )  mm
       ! prcp

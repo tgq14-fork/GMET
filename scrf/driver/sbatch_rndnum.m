@@ -8,7 +8,7 @@ outpath='/home/gut428/scratch/GMET/EMDNA_out/SCRF';
 
 Path_script='/Users/localuser/Downloads/scripts';
 sens=1;
-eens=3;
+eens=100;
 
 for i=sens:eens
     file1=['rndnum_',num2str(i),'.txt'];
