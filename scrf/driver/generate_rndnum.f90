@@ -543,6 +543,7 @@ program generate_rndnum
 			end do
 		  end do
 		  sp_trange = spcorr
+		  deallocate (sp_wght, sp_ipos, sp_jpos, sp_num, sp_sdev)
 ! 		  deallocate (spcorr)
 		  ! --------------------------------------------------------------------------------
 		  ! days of the month
@@ -609,7 +610,7 @@ program generate_rndnum
 		  write (suffix, '(I3.3)') iens
 		  out_name = trim(out_forc_name_base) // '/scrf.' // trim(mmstr) // '.' // trim(suffix) // '.nc'
 		  call save_rndnum (pcp_rndnum, tmean_rndnum, trange_rndnum, nx, ny, ntimes, lat_out, lon_out, hgt_out, out_name, ierr)
-
+          deallocate (pcp_rndnum, mean_rndnum, trange_rndnum)
       end do !end month
     end do !end year
   end do !end ensemble member loop

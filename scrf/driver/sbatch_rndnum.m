@@ -26,16 +26,14 @@ for i=sens:eens
     fprintf(fid,['time_mode       = "999"\n']); % different time mode
     fprintf(fid,'/\n');
     fclose(fid);
-    
-    
 
     outfile2=[Path_script,'/run_rndnum_',num2str(i),'.sh'];
     fidout=fopen(outfile2,'w');
     fprintf(fidout,'#!/bin/bash\n');
     fprintf(fidout,['#SBATCH --job-name=rndnum_',num2str(i),'\n']);
     fprintf(fidout,'#SBATCH --account=rpp-kshook\n');
-    fprintf(fidout,['#SBATCH --time=0-30:00:00\n']);
-    fprintf(fidout,'#SBATCH --mem=20G\n');
+    fprintf(fidout,['#SBATCH --time=2-12:00:00\n']);
+    fprintf(fidout,'#SBATCH --mem=30G\n');
     
     exefile=['/home/gut428/scratch/GMET/EMDNA_out/generate_rndnum.exe'];
     fprintf(fidout,['chmod a+x ',exefile,'\n']);
