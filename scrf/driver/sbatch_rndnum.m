@@ -29,7 +29,7 @@ for i=sens:eens
     
     
 
-    outfile2=[Path_script,'/run_rndnum_',num2str(i),'.txt'];
+    outfile2=[Path_script,'/run_rndnum_',num2str(i),'.sh'];
     fidout=fopen(outfile2,'w');
     fprintf(fidout,'#!/bin/bash\n');
     fprintf(fidout,['#SBATCH --job-name=rndnum_',num2str(i),'\n']);

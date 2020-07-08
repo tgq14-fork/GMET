@@ -1,4 +1,4 @@
-program generate_ensembles
+program generate_rndnum
 ! Creator: Guoqiang Tang, 2020
 ! Purpose: Produce spatiotemporally correlated random numbers (SCRF) for all days and 
 ! all grids in a single run
@@ -615,4 +615,4 @@ program generate_ensembles
   end do !end ensemble member loop
    
  
-end program generate_ensembles
+end program generate_rndnum

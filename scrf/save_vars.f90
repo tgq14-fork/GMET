@@ -68,7 +68,7 @@ subroutine save_vars (pcp, tmean, trange, nx, ny, grdlat, grdlon, grdalt, times,
 !a    error = 0
 
     ! Create NEW output file
-    call check (nf90_create(file, nf90_clobber, ncid), "File creation error", error)
+    call check (nf90_create(file, NF90_NETCDF4, ncid), "File creation error", error)
     if (error /= 0) return
 
     ! Define the dimensions.
@@ -80,22 +80,22 @@ subroutine save_vars (pcp, tmean, trange, nx, ny, grdlat, grdlon, grdalt, times,
 
     ! Define the variables.
     dimids2 = (/ x_dimid, y_dimid /)
-    call check (nf90_def_var(ncid, lat_name, nf90_double, dimids2, lat_varid), "lat var def error", &
+    call check (nf90_def_var(ncid, lat_name, nf90_double, dimids2, lat_varid, deflate_level=9), "lat var def error", &
    & error)
-    call check (nf90_def_var(ncid, lon_name, nf90_double, dimids2, lon_varid), "lon var def error", &
+    call check (nf90_def_var(ncid, lon_name, nf90_double, dimids2, lon_varid, deflate_level=9), "lon var def error", &
    & error)
-    call check (nf90_def_var(ncid, alt_name, nf90_double, dimids2, alt_varid), "lon var def error", &
+    call check (nf90_def_var(ncid, alt_name, nf90_double, dimids2, alt_varid, deflate_level=9), "lon var def error", &
    & error)
-    call check (nf90_def_var(ncid, time_name, nf90_double, time_dimid, time_varid), "time var def e&
+    call check (nf90_def_var(ncid, time_name, nf90_double, time_dimid, time_varid, deflate_level=9), "time var def e&
    &rror", error)
     if (error /= 0) return
 
     dimids3 = (/ x_dimid, y_dimid, time_dimid /)
-    call check (nf90_def_var(ncid, pcp_name, nf90_float, dimids3, pcp_varid), "pcp var def error", &
+    call check (nf90_def_var(ncid, pcp_name, nf90_float, dimids3, pcp_varid, deflate_level=9), "pcp var def error", &
    & error)
-    call check (nf90_def_var(ncid, pop_name, nf90_float, dimids3, pop_varid), "pop var def error", &
+    call check (nf90_def_var(ncid, pop_name, nf90_float, dimids3, pop_varid, deflate_level=9), "pop var def error", &
    & error)
-    call check (nf90_def_var(ncid, pcp_error_name, nf90_float, dimids3, pcp_error_varid), "pcp_erro&
+    call check (nf90_def_var(ncid, pcp_error_name, nf90_float, dimids3, pcp_error_varid, deflate_level=9), "pcp_erro&
    &r var def error", error)
     if (error /= 0) return
 
