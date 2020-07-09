@@ -570,6 +570,11 @@ program generate_rndnum
   		  trange_rndnum = 0.0
 		  ! --------------------------------------------------------------------------------
 		  print *, 'generate random numbers'
+		  if (allocated(old_random)) deallocate (old_random, stat=ierr)
+		  if (allocated(pcp_random)) deallocate (pcp_random, stat=ierr)
+		  if (allocated(tmean_random)) deallocate (tmean_random, stat=ierr)
+		  if (allocated(trange_random)) deallocate (trange_random, stat=ierr)
+      	  allocate (old_random(nspl1, nspl2),pcp_random(nspl1, nspl2),tmean_random(nspl1, nspl2), trange_random(nspl1, nspl2), stat=ierr)
 		  
 		  do istep = 1, ntimes
 			  if (initflag .eq. 1) then
@@ -588,6 +593,7 @@ program generate_rndnum
 				initflag = 0
 			  else
 			    print *, 'time step', istep
+			    
 			    spcorr = sp_temp
                 old_random = tmean_random
       			call field_rand (nspl1, nspl2, tmean_random)
