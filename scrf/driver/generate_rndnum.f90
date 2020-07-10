@@ -615,7 +615,7 @@ program generate_rndnum
 		  write( mmstr, '(i6)' )  i*100+j
 		  write (suffix, '(I3.3)') iens
 		  out_name = trim(out_forc_name_base) // '/scrf.' // trim(mmstr) // '.' // trim(suffix) // '.nc'
-		  call save_rndnum (pcp_rndnum, tmean_rndnum, trange_rndnum, nx, ny, ntimes, lat_out, lon_out, hgt_out, out_name, ierr)
+! 		  call save_rndnum (pcp_rndnum, tmean_rndnum, trange_rndnum, nx, ny, ntimes, lat_out, lon_out, hgt_out, out_name, ierr)
           deallocate (pcp_rndnum, tmean_rndnum, trange_rndnum)
       end do !end month
     end do !end year
