@@ -429,7 +429,7 @@ program generate_rndnum
   if (allocated(pcp_rndnum))  deallocate (pcp_rndnum, stat=ierr)
 		  if (allocated(tmean_rndnum))  deallocate (tmean_rndnum, stat=ierr)
 		  if (allocated(trange_rndnum))  deallocate (trange_rndnum, stat=ierr)
-		  allocate (pcp_rndnum(nx, ny, ntimes), tmean_rndnum(nx, ny, ntimes), trange_rndnum(nx, ny, ntimes), stat=ierr)
+		  allocate (pcp_rndnum(nx, ny, 31), tmean_rndnum(nx, ny, 31), trange_rndnum(nx, ny, 31), stat=ierr)
 		  pcp_rndnum = 0.0
   		  tmean_rndnum = 0.0
   		  trange_rndnum = 0.0
