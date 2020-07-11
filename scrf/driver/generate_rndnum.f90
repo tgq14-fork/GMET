@@ -426,6 +426,19 @@ program generate_rndnum
   print *, 'Generating a useless SCRF'
   call spcorr_grd (nspl1, nspl2, grid) ! necessary to produce iorder and jorder
   
+  if (allocated(pcp_rndnum))  deallocate (pcp_rndnum, stat=ierr)
+		  if (allocated(tmean_rndnum))  deallocate (tmean_rndnum, stat=ierr)
+		  if (allocated(trange_rndnum))  deallocate (trange_rndnum, stat=ierr)
+		  allocate (pcp_rndnum(nx, ny, ntimes), tmean_rndnum(nx, ny, ntimes), trange_rndnum(nx, ny, ntimes), stat=ierr)
+		  pcp_rndnum = 0.0
+  		  tmean_rndnum = 0.0
+  		  trange_rndnum = 0.0
+  		  
+  if (allocated(old_random)) deallocate (old_random, stat=ierr)
+		  if (allocated(pcp_random)) deallocate (pcp_random, stat=ierr)
+		  if (allocated(tmean_random)) deallocate (tmean_random, stat=ierr)
+		  if (allocated(trange_random)) deallocate (trange_random, stat=ierr)
+      	  allocate (old_random(nspl1, nspl2),pcp_random(nspl1, nspl2),tmean_random(nspl1, nspl2), trange_random(nspl1, nspl2), stat=ierr)
   ! --------------------------------------------------------------------------------------
   print *, 'Generating SCRF for every month'
   do iens = start_ens, stop_ens
@@ -561,20 +574,20 @@ program generate_rndnum
 		    end if 
 		  end if  
 		  print *, 'day number', ntimes
-		  if (allocated(pcp_rndnum))  deallocate (pcp_rndnum, stat=ierr)
-		  if (allocated(tmean_rndnum))  deallocate (tmean_rndnum, stat=ierr)
-		  if (allocated(trange_rndnum))  deallocate (trange_rndnum, stat=ierr)
-		  allocate (pcp_rndnum(nx, ny, ntimes), tmean_rndnum(nx, ny, ntimes), trange_rndnum(nx, ny, ntimes), stat=ierr)
-		  pcp_rndnum = 0.0
-  		  tmean_rndnum = 0.0
-  		  trange_rndnum = 0.0
+		  ! if (allocated(pcp_rndnum))  deallocate (pcp_rndnum, stat=ierr)
+! 		  if (allocated(tmean_rndnum))  deallocate (tmean_rndnum, stat=ierr)
+! 		  if (allocated(trange_rndnum))  deallocate (trange_rndnum, stat=ierr)
+! 		  allocate (pcp_rndnum(nx, ny, ntimes), tmean_rndnum(nx, ny, ntimes), trange_rndnum(nx, ny, ntimes), stat=ierr)
+! 		  pcp_rndnum = 0.0
+!   		  tmean_rndnum = 0.0
+!   		  trange_rndnum = 0.0
 		  ! --------------------------------------------------------------------------------
 		  print *, 'generate random numbers'
-		  if (allocated(old_random)) deallocate (old_random, stat=ierr)
-		  if (allocated(pcp_random)) deallocate (pcp_random, stat=ierr)
-		  if (allocated(tmean_random)) deallocate (tmean_random, stat=ierr)
-		  if (allocated(trange_random)) deallocate (trange_random, stat=ierr)
-      	  allocate (old_random(nspl1, nspl2),pcp_random(nspl1, nspl2),tmean_random(nspl1, nspl2), trange_random(nspl1, nspl2), stat=ierr)
+		  ! if (allocated(old_random)) deallocate (old_random, stat=ierr)
+! 		  if (allocated(pcp_random)) deallocate (pcp_random, stat=ierr)
+! 		  if (allocated(tmean_random)) deallocate (tmean_random, stat=ierr)
+! 		  if (allocated(trange_random)) deallocate (trange_random, stat=ierr)
+!       	  allocate (old_random(nspl1, nspl2),pcp_random(nspl1, nspl2),tmean_random(nspl1, nspl2), trange_random(nspl1, nspl2), stat=ierr)
 		  
 		  do istep = 1, ntimes
 			  if (initflag .eq. 1) then
