@@ -594,6 +594,14 @@ program generate_rndnum
 			  else
 			    print *, 'time step', istep
 			    
+			    if (associated(spcorr)) deallocate (spcorr, stat=ierr)
+		        allocate (spcorr(nspl1, nspl2), stat=ierr)
+		        do isp1 = 1, nspl1
+			      do isp2 = 1, nspl2
+			        nullify (spcorr(isp1, isp2)%ipos, spcorr(isp1, isp2)%jpos, spcorr(isp1, isp2)%wght)
+			      end do
+		        end do
+			    
 			    spcorr = sp_temp
                 old_random = tmean_random
       			call field_rand (nspl1, nspl2, tmean_random)
