@@ -576,7 +576,7 @@ program generate_rndnum
 		  if (allocated(trange_random)) deallocate (trange_random, stat=ierr)
       	  allocate (old_random(nspl1, nspl2),pcp_random(nspl1, nspl2),tmean_random(nspl1, nspl2), trange_random(nspl1, nspl2), stat=ierr)
 		  
-		  do istep = 1, ntimes
+		  do istep = 1, ntimes   ! loop for all days in one month
 			  if (initflag .eq. 1) then
 			    print *, 'init time step', istep
 			  	spcorr = sp_pcp
@@ -594,14 +594,6 @@ program generate_rndnum
 			  else
 			    print *, 'time step', istep
 			    
-			    if (associated(spcorr)) deallocate (spcorr, stat=ierr)
-		        allocate (spcorr(nspl1, nspl2), stat=ierr)
-		        do isp1 = 1, nspl1
-			      do isp2 = 1, nspl2
-			        nullify (spcorr(isp1, isp2)%ipos, spcorr(isp1, isp2)%jpos, spcorr(isp1, isp2)%wght)
-			      end do
-		        end do
-			    
 			    spcorr = sp_temp
                 old_random = tmean_random
       			call field_rand (nspl1, nspl2, tmean_random)
@@ -616,7 +608,7 @@ program generate_rndnum
       			call field_rand (nspl1, nspl2, pcp_random)
       			pcp_rndnum(:, :, istep) = trange_random * tp_corr_daily (j) + sqrt (1-tp_corr_daily (j)*tp_corr_daily (j)) * pcp_random
 			  end if
-		  end do ! end days
+		  end do ! end loop days
 		  ! --------------------------------------------------------------------------------
 		  ! save random numbers to netcdf files
 		  print *, 'save random numbers to nc file'

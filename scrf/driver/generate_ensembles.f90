@@ -251,6 +251,10 @@ program generate_ensembles
 
   ! ========== code starts below ==============================
  
+  !!!!!!!!
+  clen_daily_prcp = clen_daily_prcp * 3
+  !!!!!!! 
+ 
   ! AWW: get namelist filename from command line (no longer hardwired)
   f = 0
   do
