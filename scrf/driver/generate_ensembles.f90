@@ -252,7 +252,7 @@ program generate_ensembles
   ! ========== code starts below ==============================
  
   !!!!!!!!
-  clen_daily_prcp = clen_daily_prcp * 3
+  clen_daily_prcp = clen_daily_prcp * 2 ! to obtain smoother distribution. a fixed Clen in North America is not reasonable.
   !!!!!!! 
  
   ! AWW: get namelist filename from command line (no longer hardwired)
