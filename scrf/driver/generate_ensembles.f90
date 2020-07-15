@@ -238,23 +238,16 @@ program generate_ensembles
   real(DP)              :: combined_error           !total error of daily anomaly uncertainty and climo uncertainty
   real(SP)              :: max_pcp                  !maximum allowable precip for a grid cell
   ! add by TGQ. Regressed using station data for North America (km).
-  real(DP),dimension(12) :: clen_daily_tmean= (/1153.0, 1322.0, 1237.0, 1018.0, 961.0, 809.0, 600.0, 615.0, 1049.0, 1217.0, 1383.0, 1250.0/)
-  real(DP),dimension(12) :: clen_month_tmean= (/1395.0, 1493.0, 1472.0, 1302.0, 1145.0, 862.0, 967.0, 914.0, 991.0, 1207.0, 1643.0, 1348.0/)
-  real(DP),dimension(12) :: clen_daily_prcp= (/303.0, 277.0, 236.0, 189.0, 125.0, 76.0, 47.0, 52.0, 126.0, 215.0, 250.0, 281.0/)
-  real(DP),dimension(12) :: clen_month_prcp= (/501.0, 384.0, 325.0, 357.0, 349.0, 283.0, 204.0, 180.0, 280.0, 422.0, 453.0, 449.0/)
-  real(DP),dimension(12) :: clen_daily_trange= (/200.0, 191.0, 185.0, 229.0, 231.0, 211.0, 128.0, 121.0, 226.0, 430.0, 285.0, 171.0/)
-  real(DP),dimension(12) :: clen_month_trange= (/573.0, 537.0, 379.0, 361.0, 368.0, 423.0, 308.0, 198.0, 399.0, 805.0, 696.0, 515.0/)
+  real(DP),dimension(12) :: clen_daily_tmean= (/1058.53, 1216.52, 1137.26, 962.64, 895.36, 763.74, 629.39, 650.82, 996.21, 1129.24, 1250.76, 1152.05/)
+  real(DP),dimension(12) :: clen_daily_prcp= (/290.25, 278.77, 246.90, 219.92, 183.17, 143.70, 111.21, 119.47, 183.84, 241.29, 263.62, 284.26/)
+  real(DP),dimension(12) :: clen_daily_trange= (/344.97, 352.29, 349.27, 378.64, 366.32, 346.70, 295.97, 291.39, 388.96, 483.01, 403.84, 333.49/)
   ! add by TGQ
 
   type (coords), pointer :: grid !coordinate structure for grid
   type (splnum), dimension (:, :), pointer :: sp_pcp, sp_temp, sp_trange ! structures of spatially correlated random field weights
 
   ! ========== code starts below ==============================
- 
-  !!!!!!!!
-  clen_daily_prcp = clen_daily_prcp * 2 ! to obtain smoother distribution. a fixed Clen in North America is not reasonable.
-  !!!!!!! 
- 
+
   ! AWW: get namelist filename from command line (no longer hardwired)
   f = 0
   do
