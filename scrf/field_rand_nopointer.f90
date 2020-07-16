@@ -36,7 +36,7 @@ subroutine field_rand_nopointer (nspl1, nspl2, sp_wght, sp_sdev, sp_ipos, sp_jpo
   use nr, only: gasdev ! Num. Recipies
   use inputdat2d ! use to relate basins to gridpoints
 !
-!   use gridweight ! correlation structure  ! deleted by TGQ
+  use gridweight ! correlation structure  ! deleted by TGQ
   implicit none
 !
 ! input
@@ -83,12 +83,10 @@ subroutine field_rand_nopointer (nspl1, nspl2, sp_wght, sp_sdev, sp_ipos, sp_jpo
   ! (1) GENERATE GRID OF RANDOM NUMBERS
   ! ----------------------------------------------------------------------------------------
   ! loop through the grid points
-!   do igrd = 1, nlon * nlat
-  do ilon = 1, nlon
-  do ilat = 1, nlat
+  do igrd = 1, nlon * nlat
   ! identify the (i,j) position of the igrd-th point
-!     ilon = iorder (igrd)
-!     ilat = jorder (igrd)
+    ilon = iorder (igrd)
+    ilat = jorder (igrd)
   ! assign a random number to the first grid-point
     if ((ilon .eq. 1) .and. (ilat .eq. 1)) then
       call gasdev (aran)
@@ -113,11 +111,9 @@ subroutine field_rand_nopointer (nspl1, nspl2, sp_wght, sp_sdev, sp_ipos, sp_jpo
       deallocate (vprv, stat=ierr)
       if (ierr .ne. 0) call exit_scrf (1, 'problem deallocating array [field_rand.f90]')
     end if ! (if not the first point)
-  end do ! ilat
-  end do ! ilon
+  end do ! igrd
 !
-  
-!   allocate (cran(nlon, nlat), stat=ierr) 
+
   cfield = cran
 !
   return

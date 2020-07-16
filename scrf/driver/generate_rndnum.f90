@@ -461,7 +461,11 @@ program generate_rndnum
   allocate (sp_wght_prcp(nspl1,nspl2,49), sp_ipos_prcp(nspl1,nspl2,49), sp_jpos_prcp(nspl1,nspl2,49),sp_num_prcp(nspl1,nspl2), sp_sdev_prcp(nspl1,nspl2), stat=ierr)
   allocate (sp_wght_tmean(nspl1,nspl2,49), sp_ipos_tmean(nspl1,nspl2,49), sp_jpos_tmean(nspl1,nspl2,49),sp_num_tmean(nspl1,nspl2), sp_sdev_tmean(nspl1,nspl2), stat=ierr)
   allocate (sp_wght_trange(nspl1,nspl2,49), sp_ipos_trange(nspl1,nspl2,49), sp_jpos_trange(nspl1,nspl2,49),sp_num_trange(nspl1,nspl2), sp_sdev_trange(nspl1,nspl2), stat=ierr)
-
+	
+	
+  clen = 150.0
+  call spcorr_grd (nspl1, nspl2, grid)
+  
   ! --------------------------------------------------------------------------------------
   print *, 'Generating SCRF for every month'
   do iens = start_ens, stop_ens
