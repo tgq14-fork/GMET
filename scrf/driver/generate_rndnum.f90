@@ -521,7 +521,7 @@ program generate_rndnum
 		  ! --------------------------------------------------------------------------------
 		  print *, 'generate random numbers'
 		  
-		  do istep = 1, 5 !ntimes   ! loop for all days in one month
+		  do istep = 1, ntimes   ! loop for all days in one month
 			  if (initflag .eq. 1) then
 			    print *, 'init time step', istep
 			    call field_rand_nopointer (nspl1, nspl2, sp_wght_prcp, sp_sdev_prcp, sp_ipos_prcp, sp_jpos_prcp, sp_num_prcp, pcp_random)
