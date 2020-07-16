@@ -82,7 +82,7 @@ SCRF_GEN = \
 		trig_degrees.f90 \
 		erfinv.f90 \
 		exit_scrf.f90 \
-		field_rand.f90 \
+		field_rand_nopointer.f90 \
 		spcorr_grd.f90 \
                 init_rand_seed_I4B.f90
 

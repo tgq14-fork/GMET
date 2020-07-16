@@ -2,6 +2,7 @@ program generate_rndnum
 ! Creator: Guoqiang Tang, 2020
 ! Purpose: Produce spatiotemporally correlated random numbers (SCRF) for all days and 
 ! all grids in a single run
+! spcorr is no longer pointer to enable explicit memory control
 
 ! -----------------------------------------------------------------------------
 ! Creator(s):
@@ -47,6 +48,25 @@ program generate_rndnum
       integer, intent (out) :: error
     end subroutine save_rndnum
  	! Add by TGQ
+ 	
+ 	subroutine field_rand_nopointer (nspl1, nspl2, sp_wght, sp_sdev, sp_ipos, sp_jpos, sp_num, cfield)
+
+  use nrtype ! variable types (DP, I4B, etc.)
+  use nr, only: gasdev ! Num. Recipies
+  use inputdat2d ! use to relate basins to gridpoints
+  implicit none
+
+  integer (i4b), intent (in) :: nspl1 ! # points (1st spatial dimension)
+  integer (i4b), intent (in) :: nspl2 ! # points (2nd spatial dimension)
+  real (dp), intent (in) :: sp_wght(:, :, :)
+  real (dp), intent (in) :: sp_sdev(:, :)
+  integer (i4b), intent (in) :: sp_ipos(:,:,:), sp_jpos(:,:,:)
+  integer (i4b), intent (in) ::sp_num(:,:)
+
+  ! Output
+  real (dp), dimension (nspl1, nspl2), intent (out) :: cfield ! correlated random field
+
+  end subroutine field_rand_nopointer
  	
  
     function erfinv (x)
@@ -182,10 +202,10 @@ program generate_rndnum
   type (coords), pointer :: grid !coordinate structure for grid
   type (splnum), dimension (:, :), pointer :: sp_pcp, sp_temp, sp_trange ! structures of spatially correlated random field weights
   
-  real (dp), dimension (:, :, :), allocatable :: sp_wght
-  real (dp), dimension (:, :), allocatable :: sp_sdev
-  integer (i4b), dimension (:,:,:), allocatable :: sp_ipos, sp_jpos
-  integer (i4b), dimension (:,:), allocatable ::sp_num
+  real (dp), dimension (:, :, :), allocatable :: sp_wght_prcp, sp_wght_tmean, sp_wght_trange
+  real (dp), dimension (:, :), allocatable :: sp_sdev_prcp, sp_sdev_tmean, sp_sdev_trange
+  integer (i4b), dimension (:,:,:), allocatable :: sp_ipos_prcp, sp_jpos_prcp, sp_ipos_tmean, sp_jpos_tmean, sp_ipos_trange, sp_jpos_trange
+  integer (i4b), dimension (:,:), allocatable ::sp_num_prcp, sp_num_tmean, sp_num_trange
   logical :: file_exists
   integer (i4b) :: initflag
   ! ========== code starts below ==============================
@@ -310,12 +330,12 @@ program generate_rndnum
 	  out_name =  trim(out_forc_name_base) // '/' // trim('spcorr_prcp_month_') // trim(mmstr)
 	  INQUIRE(FILE=out_name, EXIST=file_exists)
 	  if (.NOT. file_exists) then
-	      if (allocated(sp_wght)) deallocate (sp_wght)
-	      if (allocated(sp_ipos)) deallocate (sp_ipos)
-	      if (allocated(sp_jpos)) deallocate (sp_jpos)
-	      if (allocated(sp_num)) deallocate (sp_num)
-	      if (allocated(sp_sdev)) deallocate (sp_sdev)
-		  allocate (sp_wght(nspl1,nspl2,49), sp_ipos(nspl1,nspl2,49), sp_jpos(nspl1,nspl2,49),sp_num(nspl1,nspl2), sp_sdev(nspl1,nspl2), stat=ierr)
+	      if (allocated(sp_wght_prcp)) deallocate (sp_wght_prcp)
+	      if (allocated(sp_ipos_prcp)) deallocate (sp_ipos_prcp)
+	      if (allocated(sp_jpos_prcp)) deallocate (sp_jpos_prcp)
+	      if (allocated(sp_num_prcp)) deallocate (sp_num_prcp)
+	      if (allocated(sp_sdev_prcp)) deallocate (sp_sdev_prcp)
+		  allocate (sp_wght_prcp(nspl1,nspl2,49), sp_ipos_prcp(nspl1,nspl2,49), sp_jpos_prcp(nspl1,nspl2,49),sp_num_prcp(nspl1,nspl2), sp_sdev_prcp(nspl1,nspl2), stat=ierr)
 		  if (associated(spcorr)) then
     		deallocate (spcorr, stat=ierr)
     		if (ierr .ne. 0) call exit_scrf (1, ' problem deallocating space for the spatial correlation structure ')
@@ -324,21 +344,21 @@ program generate_rndnum
 		  call spcorr_grd (nspl1, nspl2, grid)
   
 		  !output spcorr_grd to file
-		  sp_wght = 0.0
-		  sp_ipos = 0
-		  sp_jpos = 0
+		  sp_wght_prcp = 0.0
+		  sp_ipos_prcp = 0
+		  sp_jpos_prcp = 0
 		  do i = 1, nspl1
 			do j = 1, nspl2
-			  sp_num(i, j)=size(spcorr(i, j)%wght)
-			  sp_ipos(i, j, 1:sp_num(i, j))=spcorr(i, j)%ipos
-			  sp_jpos(i, j, 1:sp_num(i, j))=spcorr(i, j)%jpos
-			  sp_wght(i, j, 1:sp_num(i, j))=spcorr(i, j)%wght
-			  sp_sdev(i, j) = spcorr(i, j)%sdev
+			  sp_num_prcp(i, j)=size(spcorr(i, j)%wght)
+			  sp_ipos_prcp(i, j, 1:sp_num_prcp(i, j))=spcorr(i, j)%ipos
+			  sp_jpos_prcp(i, j, 1:sp_num_prcp(i, j))=spcorr(i, j)%jpos
+			  sp_wght_prcp(i, j, 1:sp_num_prcp(i, j))=spcorr(i, j)%wght
+			  sp_sdev_prcp(i, j) = spcorr(i, j)%sdev
 			end do
 		  end do
 		  open(unit=34,file= out_name,form='unformatted',iostat=error)
 		  if(error .ne. 0) then; print *, 'Error opening station weight file', error; stop; end if
-		  write(unit=34,iostat=error) sp_wght, sp_ipos, sp_jpos, sp_num, sp_sdev
+		  write(unit=34,iostat=error) sp_wght_prcp, sp_ipos_prcp, sp_jpos_prcp, sp_num_prcp, sp_sdev_prcp
 		  if(error .ne. 0) then; print *, 'Error writing station weight file ', error; stop; end if
 		  close(unit=34)
 	  end if
@@ -348,12 +368,12 @@ program generate_rndnum
 	  out_name = trim(out_forc_name_base) // '/' // trim('spcorr_tmean_month_') // trim(mmstr)
 	  INQUIRE(FILE=out_name, EXIST=file_exists)
 	  if (.NOT. file_exists) then
-	      if (allocated(sp_wght)) deallocate (sp_wght)
-	      if (allocated(sp_ipos)) deallocate (sp_ipos)
-	      if (allocated(sp_jpos)) deallocate (sp_jpos)
-	      if (allocated(sp_num)) deallocate (sp_num)
-	      if (allocated(sp_sdev)) deallocate (sp_sdev)
-		  allocate (sp_wght(nspl1,nspl2,49), sp_ipos(nspl1,nspl2,49), sp_jpos(nspl1,nspl2,49),sp_num(nspl1,nspl2), sp_sdev(nspl1,nspl2), stat=ierr)
+	      if (allocated(sp_wght_prcp)) deallocate (sp_wght_prcp)
+	      if (allocated(sp_ipos_prcp)) deallocate (sp_ipos_prcp)
+	      if (allocated(sp_jpos_prcp)) deallocate (sp_jpos_prcp)
+	      if (allocated(sp_num_prcp)) deallocate (sp_num_prcp)
+	      if (allocated(sp_sdev_prcp)) deallocate (sp_sdev_prcp)
+		  allocate (sp_wght_prcp(nspl1,nspl2,49), sp_ipos_prcp(nspl1,nspl2,49), sp_jpos_prcp(nspl1,nspl2,49),sp_num_prcp(nspl1,nspl2), sp_sdev_prcp(nspl1,nspl2), stat=ierr)
 		  if (associated(spcorr)) then
     		deallocate (spcorr, stat=ierr)
     		if (ierr .ne. 0) call exit_scrf (1, ' problem deallocating space for the spatial correlation structure ')
@@ -362,21 +382,21 @@ program generate_rndnum
 		  call spcorr_grd (nspl1, nspl2, grid)
   
 		  !output spcorr_grd to file
-		  sp_wght = 0.0
-		  sp_ipos = 0
-		  sp_jpos = 0
+		  sp_wght_prcp = 0.0
+		  sp_ipos_prcp = 0
+		  sp_jpos_prcp = 0
 		  do i = 1, nspl1
 			do j = 1, nspl2
-			  sp_num(i, j)=size(spcorr(i, j)%wght)
-			  sp_ipos(i, j, 1:sp_num(i, j))=spcorr(i, j)%ipos
-			  sp_jpos(i, j, 1:sp_num(i, j))=spcorr(i, j)%jpos
-			  sp_wght(i, j, 1:sp_num(i, j))=spcorr(i, j)%wght
-			  sp_sdev(i, j) = spcorr(i, j)%sdev
+			  sp_num_prcp(i, j)=size(spcorr(i, j)%wght)
+			  sp_ipos_prcp(i, j, 1:sp_num_prcp(i, j))=spcorr(i, j)%ipos
+			  sp_jpos_prcp(i, j, 1:sp_num_prcp(i, j))=spcorr(i, j)%jpos
+			  sp_wght_prcp(i, j, 1:sp_num_prcp(i, j))=spcorr(i, j)%wght
+			  sp_sdev_prcp(i, j) = spcorr(i, j)%sdev
 			end do
 		  end do
 		  open(unit=34,file= out_name,form='unformatted',iostat=error)
 		  if(error .ne. 0) then; print *, 'Error opening station weight file', error; stop; end if
-		  write(unit=34,iostat=error) sp_wght, sp_ipos, sp_jpos, sp_num, sp_sdev
+		  write(unit=34,iostat=error) sp_wght_prcp, sp_ipos_prcp, sp_jpos_prcp, sp_num_prcp, sp_sdev_prcp
 		  if(error .ne. 0) then; print *, 'Error writing station weight file ', error; stop; end if
 		  close(unit=34)
 	  end if
@@ -386,12 +406,12 @@ program generate_rndnum
 	  out_name = trim(out_forc_name_base) // '/' // trim('spcorr_trange_month_') // trim(mmstr)
 	  INQUIRE(FILE=out_name, EXIST=file_exists)
 	  if (.NOT. file_exists) then
-	      if (allocated(sp_wght)) deallocate (sp_wght)
-	      if (allocated(sp_ipos)) deallocate (sp_ipos)
-	      if (allocated(sp_jpos)) deallocate (sp_jpos)
-	      if (allocated(sp_num)) deallocate (sp_num)
-	      if (allocated(sp_sdev)) deallocate (sp_sdev)
-		  allocate (sp_wght(nspl1,nspl2,49), sp_ipos(nspl1,nspl2,49), sp_jpos(nspl1,nspl2,49),sp_num(nspl1,nspl2), sp_sdev(nspl1,nspl2), stat=ierr)
+	      if (allocated(sp_wght_prcp)) deallocate (sp_wght_prcp)
+	      if (allocated(sp_ipos_prcp)) deallocate (sp_ipos_prcp)
+	      if (allocated(sp_jpos_prcp)) deallocate (sp_jpos_prcp)
+	      if (allocated(sp_num_prcp)) deallocate (sp_num_prcp)
+	      if (allocated(sp_sdev_prcp)) deallocate (sp_sdev_prcp)
+		  allocate (sp_wght_prcp(nspl1,nspl2,49), sp_ipos_prcp(nspl1,nspl2,49), sp_jpos_prcp(nspl1,nspl2,49),sp_num_prcp(nspl1,nspl2), sp_sdev_prcp(nspl1,nspl2), stat=ierr)
 		  if (associated(spcorr)) then
     		deallocate (spcorr, stat=ierr)
     		if (ierr .ne. 0) call exit_scrf (1, ' problem deallocating space for the spatial correlation structure ')
@@ -400,29 +420,48 @@ program generate_rndnum
 		  call spcorr_grd (nspl1, nspl2, grid)
   
 		  !output spcorr_grd to file
-		  sp_wght = 0.0
-		  sp_ipos = 0
-		  sp_jpos = 0
+		  sp_wght_prcp = 0.0
+		  sp_ipos_prcp = 0
+		  sp_jpos_prcp = 0
 		  do i = 1, nspl1
 			do j = 1, nspl2
-			  sp_num(i, j)=size(spcorr(i, j)%wght)
-			  sp_ipos(i, j, 1:sp_num(i, j))=spcorr(i, j)%ipos
-			  sp_jpos(i, j, 1:sp_num(i, j))=spcorr(i, j)%jpos
-			  sp_wght(i, j, 1:sp_num(i, j))=spcorr(i, j)%wght
-			  sp_sdev(i, j) = spcorr(i, j)%sdev
+			  sp_num_prcp(i, j)=size(spcorr(i, j)%wght)
+			  sp_ipos_prcp(i, j, 1:sp_num_prcp(i, j))=spcorr(i, j)%ipos
+			  sp_jpos_prcp(i, j, 1:sp_num_prcp(i, j))=spcorr(i, j)%jpos
+			  sp_wght_prcp(i, j, 1:sp_num_prcp(i, j))=spcorr(i, j)%wght
+			  sp_sdev_prcp(i, j) = spcorr(i, j)%sdev
 			end do
 		  end do
 		  open(unit=34,file= out_name,form='unformatted',iostat=error)
 		  if(error .ne. 0) then; print *, 'Error opening station weight file', error; stop; end if
-		  write(unit=34,iostat=error) sp_wght, sp_ipos, sp_jpos, sp_num, sp_sdev
+		  write(unit=34,iostat=error) sp_wght_prcp, sp_ipos_prcp, sp_jpos_prcp, sp_num_prcp, sp_sdev_prcp
 		  if(error .ne. 0) then; print *, 'Error writing station weight file ', error; stop; end if
 		  close(unit=34)
 	  end if
   end do ! end loop mm
+ 
   
-  print *, 'Generating a useless SCRF'
-  call spcorr_grd (nspl1, nspl2, grid) ! necessary to produce iorder and jorder
+  if (allocated(sp_wght_prcp)) deallocate (sp_wght_prcp)
+  if (allocated(sp_ipos_prcp)) deallocate (sp_ipos_prcp)
+  if (allocated(sp_jpos_prcp)) deallocate (sp_jpos_prcp)
+  if (allocated(sp_num_prcp)) deallocate (sp_num_prcp)
+  if (allocated(sp_sdev_prcp)) deallocate (sp_sdev_prcp) 
   
+  if (allocated(sp_wght_tmean)) deallocate (sp_wght_tmean)
+  if (allocated(sp_ipos_tmean)) deallocate (sp_ipos_tmean)
+  if (allocated(sp_jpos_tmean)) deallocate (sp_jpos_tmean)
+  if (allocated(sp_num_tmean)) deallocate (sp_num_tmean)
+  if (allocated(sp_sdev_tmean)) deallocate (sp_sdev_tmean) 
+  
+  if (allocated(sp_wght_trange)) deallocate (sp_wght_trange)
+  if (allocated(sp_ipos_trange)) deallocate (sp_ipos_trange)
+  if (allocated(sp_jpos_trange)) deallocate (sp_jpos_trange)
+  if (allocated(sp_num_trange)) deallocate (sp_num_trange)
+  if (allocated(sp_sdev_trange)) deallocate (sp_sdev_trange) 
+  allocate (sp_wght_prcp(nspl1,nspl2,49), sp_ipos_prcp(nspl1,nspl2,49), sp_jpos_prcp(nspl1,nspl2,49),sp_num_prcp(nspl1,nspl2), sp_sdev_prcp(nspl1,nspl2), stat=ierr)
+  allocate (sp_wght_tmean(nspl1,nspl2,49), sp_ipos_tmean(nspl1,nspl2,49), sp_jpos_tmean(nspl1,nspl2,49),sp_num_tmean(nspl1,nspl2), sp_sdev_tmean(nspl1,nspl2), stat=ierr)
+  allocate (sp_wght_trange(nspl1,nspl2,49), sp_ipos_trange(nspl1,nspl2,49), sp_jpos_trange(nspl1,nspl2,49),sp_num_trange(nspl1,nspl2), sp_sdev_trange(nspl1,nspl2), stat=ierr)
+
   ! --------------------------------------------------------------------------------------
   print *, 'Generating SCRF for every month'
   do iens = start_ens, stop_ens
@@ -434,114 +473,24 @@ program generate_rndnum
         ! --------------------------------------------------------------------------------
         ! load spatial correlation structure
         print *, 'load spatial correlation structure'
-        if (associated(sp_pcp)) deallocate (sp_pcp, stat=ierr)
-        if (associated(sp_temp)) deallocate (sp_temp, stat=ierr)
-        if (associated(sp_trange)) deallocate (sp_trange, stat=ierr)
-        allocate (sp_pcp(nspl1, nspl2),sp_temp(nspl1, nspl2),sp_trange(nspl1, nspl2), stat=ierr)
         ! prcp
           out_name = trim(out_forc_name_base) // '/' // trim('spcorr_prcp_month_') // trim(mmstr)
-          if (allocated(sp_wght)) deallocate (sp_wght)
-	      if (allocated(sp_ipos)) deallocate (sp_ipos)
-	      if (allocated(sp_jpos)) deallocate (sp_jpos)
-	      if (allocated(sp_num)) deallocate (sp_num)
-	      if (allocated(sp_sdev)) deallocate (sp_sdev)
-		  allocate (sp_wght(nspl1,nspl2,49), sp_ipos(nspl1,nspl2,49), sp_jpos(nspl1,nspl2,49),sp_num(nspl1,nspl2), sp_sdev(nspl1,nspl2), stat=ierr)
 		  open(unit=34,file=out_name,form='unformatted',iostat=error)
-		  read(unit=34,iostat=error) sp_wght, sp_ipos, sp_jpos, sp_num, sp_sdev
+		  read(unit=34,iostat=error) sp_wght_prcp, sp_ipos_prcp, sp_jpos_prcp, sp_num_prcp, sp_sdev_prcp
 		  close(unit=34)
-
-		  if (associated(spcorr)) deallocate (spcorr, stat=ierr)
-		  allocate (spcorr(nspl1, nspl2), stat=ierr)
-		  do isp1 = 1, nspl1
-			do isp2 = 1, nspl2
-			  nullify (spcorr(isp1, isp2)%ipos, spcorr(isp1, isp2)%jpos, spcorr(isp1, isp2)%wght)
-			end do
-		  end do
-  
-		  do isp1 = 1, nspl1
-			do isp2 = 1, nspl2
-			  if (associated(spcorr(isp1, isp2)%ipos))  deallocate (spcorr(isp1, isp2)%ipos, stat=ierr)
-			  if (associated(spcorr(isp1, isp2)%jpos))  deallocate (spcorr(isp1, isp2)%jpos, stat=ierr)
-			  if (associated(spcorr(isp1, isp2)%wght)) deallocate (spcorr(isp1, isp2)%wght, stat=ierr)			  
-			  allocate (spcorr(isp1, isp2)%ipos(sp_num(isp1, isp2)), spcorr(isp1, isp2)%jpos(sp_num(isp1, isp2)), stat=ierr)
-			  allocate (spcorr(isp1, isp2)%wght(sp_num(isp1, isp2)), stat=ierr)
-			  spcorr(isp1, isp2)%wght=sp_wght(isp1, isp2,1:sp_num(isp1, isp2))
-			  spcorr(isp1, isp2)%ipos=sp_ipos(isp1, isp2,1:sp_num(isp1, isp2))
-			  spcorr(isp1, isp2)%jpos=sp_jpos(isp1, isp2,1:sp_num(isp1, isp2))
-			  spcorr(isp1, isp2)%sdev = sp_sdev(isp1, isp2)
-			end do
-		  end do
-		  sp_pcp = spcorr
+		  
 		! tmean
           out_name = trim(out_forc_name_base) // '/' // trim('spcorr_tmean_month_') // trim(mmstr)
-          if (allocated(sp_wght)) deallocate (sp_wght)
-	      if (allocated(sp_ipos)) deallocate (sp_ipos)
-	      if (allocated(sp_jpos)) deallocate (sp_jpos)
-	      if (allocated(sp_num)) deallocate (sp_num)
-	      if (allocated(sp_sdev)) deallocate (sp_sdev)
-		  allocate (sp_wght(nspl1,nspl2,49), sp_ipos(nspl1,nspl2,49), sp_jpos(nspl1,nspl2,49),sp_num(nspl1,nspl2), sp_sdev(nspl1,nspl2), stat=ierr)
 		  open(unit=34,file=out_name,form='unformatted',iostat=error)
-		  read(unit=34,iostat=error) sp_wght, sp_ipos, sp_jpos, sp_num, sp_sdev
+		  read(unit=34,iostat=error) sp_wght_tmean, sp_ipos_tmean, sp_jpos_tmean, sp_num_tmean, sp_sdev_tmean
 		  close(unit=34)
 
-		  if (associated(spcorr)) deallocate (spcorr, stat=ierr)
-		  allocate (spcorr(nspl1, nspl2), stat=ierr)
-		  do isp1 = 1, nspl1
-			do isp2 = 1, nspl2
-			  nullify (spcorr(isp1, isp2)%ipos, spcorr(isp1, isp2)%jpos, spcorr(isp1, isp2)%wght)
-			end do
-		  end do
-  
-		  do isp1 = 1, nspl1
-			do isp2 = 1, nspl2
-			  if (associated(spcorr(isp1, isp2)%ipos))  deallocate (spcorr(isp1, isp2)%ipos, stat=ierr)
-			  if (associated(spcorr(isp1, isp2)%jpos))  deallocate (spcorr(isp1, isp2)%jpos, stat=ierr)
-			  if (associated(spcorr(isp1, isp2)%wght)) deallocate (spcorr(isp1, isp2)%wght, stat=ierr)			  
-			  allocate (spcorr(isp1, isp2)%ipos(sp_num(isp1, isp2)), spcorr(isp1, isp2)%jpos(sp_num(isp1, isp2)), stat=ierr)
-			  allocate (spcorr(isp1, isp2)%wght(sp_num(isp1, isp2)), stat=ierr)
-			  spcorr(isp1, isp2)%wght=sp_wght(isp1, isp2,1:sp_num(isp1, isp2))
-			  spcorr(isp1, isp2)%ipos=sp_ipos(isp1, isp2,1:sp_num(isp1, isp2))
-			  spcorr(isp1, isp2)%jpos=sp_jpos(isp1, isp2,1:sp_num(isp1, isp2))
-			  spcorr(isp1, isp2)%sdev = sp_sdev(isp1, isp2)
-			end do
-		  end do
-		  sp_temp = spcorr
 		! trange
           out_name = trim(out_forc_name_base) // '/' // trim('spcorr_trange_month_') // trim(mmstr)
-          if (allocated(sp_wght)) deallocate (sp_wght)
-	      if (allocated(sp_ipos)) deallocate (sp_ipos)
-	      if (allocated(sp_jpos)) deallocate (sp_jpos)
-	      if (allocated(sp_num)) deallocate (sp_num)
-	      if (allocated(sp_sdev)) deallocate (sp_sdev)
-		  allocate (sp_wght(nspl1,nspl2,49), sp_ipos(nspl1,nspl2,49), sp_jpos(nspl1,nspl2,49),sp_num(nspl1,nspl2), sp_sdev(nspl1,nspl2), stat=ierr)
 		  open(unit=34,file=out_name,form='unformatted',iostat=error)
-		  read(unit=34,iostat=error) sp_wght, sp_ipos, sp_jpos, sp_num, sp_sdev
+		  read(unit=34,iostat=error) sp_wght_trange, sp_ipos_trange, sp_jpos_trange, sp_num_trange, sp_sdev_trange
 		  close(unit=34)
 
-		  if (associated(spcorr)) deallocate (spcorr, stat=ierr)
-		  allocate (spcorr(nspl1, nspl2), stat=ierr)
-		  do isp1 = 1, nspl1
-			do isp2 = 1, nspl2
-			  nullify (spcorr(isp1, isp2)%ipos, spcorr(isp1, isp2)%jpos, spcorr(isp1, isp2)%wght)
-			end do
-		  end do
-  
-		  do isp1 = 1, nspl1
-			do isp2 = 1, nspl2
-			  if (associated(spcorr(isp1, isp2)%ipos))  deallocate (spcorr(isp1, isp2)%ipos, stat=ierr)
-			  if (associated(spcorr(isp1, isp2)%jpos))  deallocate (spcorr(isp1, isp2)%jpos, stat=ierr)
-			  if (associated(spcorr(isp1, isp2)%wght)) deallocate (spcorr(isp1, isp2)%wght, stat=ierr)			  
-			  allocate (spcorr(isp1, isp2)%ipos(sp_num(isp1, isp2)), spcorr(isp1, isp2)%jpos(sp_num(isp1, isp2)), stat=ierr)
-			  allocate (spcorr(isp1, isp2)%wght(sp_num(isp1, isp2)), stat=ierr)
-			  spcorr(isp1, isp2)%wght=sp_wght(isp1, isp2,1:sp_num(isp1, isp2))
-			  spcorr(isp1, isp2)%ipos=sp_ipos(isp1, isp2,1:sp_num(isp1, isp2))
-			  spcorr(isp1, isp2)%jpos=sp_jpos(isp1, isp2,1:sp_num(isp1, isp2))
-			  spcorr(isp1, isp2)%sdev = sp_sdev(isp1, isp2)
-			end do
-		  end do
-		  sp_trange = spcorr
-		  deallocate (sp_wght, sp_ipos, sp_jpos, sp_num, sp_sdev)
-! 		  deallocate (spcorr)
 		  ! --------------------------------------------------------------------------------
 		  ! days of the month
 		  if ((j .eq. 1) .or. (j .eq. 3) .or. (j .eq. 5) .or. (j .eq. 7) .or. (j .eq. 8) .or. (j .eq. 10) .or. (j .eq. 12)) then
@@ -567,42 +516,31 @@ program generate_rndnum
   		  trange_rndnum = 0.0
 		  ! --------------------------------------------------------------------------------
 		  print *, 'generate random numbers'
-		  if (allocated(old_random)) deallocate (old_random, stat=ierr)
-		  if (allocated(pcp_random)) deallocate (pcp_random, stat=ierr)
-		  if (allocated(tmean_random)) deallocate (tmean_random, stat=ierr)
-		  if (allocated(trange_random)) deallocate (trange_random, stat=ierr)
-      	  allocate (old_random(nspl1, nspl2),pcp_random(nspl1, nspl2),tmean_random(nspl1, nspl2), trange_random(nspl1, nspl2), stat=ierr)
 		  
-		  do istep = 1, ntimes   ! loop for all days in one month
+		  do istep = 1, 5 !ntimes   ! loop for all days in one month
 			  if (initflag .eq. 1) then
 			    print *, 'init time step', istep
-			  	spcorr = sp_pcp
-			    call field_rand (nspl1, nspl2, pcp_random)
+			    call field_rand_nopointer (nspl1, nspl2, sp_wght_prcp, sp_sdev_prcp, sp_ipos_prcp, sp_jpos_prcp, sp_num_prcp, pcp_random)
 			    pcp_rndnum(:, :, istep) = pcp_random
 			    
-			    spcorr = sp_temp
-			    call field_rand (nspl1, nspl2, tmean_random)
+			    call field_rand_nopointer (nspl1, nspl2, sp_wght_tmean, sp_sdev_tmean, sp_ipos_tmean, sp_jpos_tmean, sp_num_tmean, tmean_random)
 			    tmean_rndnum(:, :, istep) = tmean_random
-			    
-			    spcorr = sp_trange
-			    call field_rand (nspl1, nspl2, trange_random)
+
+			    call field_rand_nopointer (nspl1, nspl2, sp_wght_trange, sp_sdev_trange, sp_ipos_trange, sp_jpos_trange, sp_num_trange, trange_random)
 				trange_rndnum(:, :, istep) = trange_random
 				initflag = 0
 			  else
 			    print *, 'time step', istep
-			    
-			    spcorr = sp_temp
+
                 old_random = tmean_random
-      			call field_rand (nspl1, nspl2, tmean_random)
+      			call field_rand_nopointer (nspl1, nspl2, sp_wght_tmean, sp_sdev_tmean, sp_ipos_tmean, sp_jpos_tmean, sp_num_tmean, tmean_random)
       			tmean_rndnum(:, :, istep) = old_random * auto_corr_daily(j) + sqrt (1-auto_corr_daily(j)*auto_corr_daily(j)) * tmean_random
-      			
-      			spcorr = sp_trange
+
       			old_random = trange_random
-      			call field_rand (nspl1, nspl2, trange_random)
+      			call field_rand_nopointer (nspl1, nspl2, sp_wght_trange, sp_sdev_trange, sp_ipos_trange, sp_jpos_trange, sp_num_trange, trange_random)
       			trange_rndnum(:, :, istep) = old_random * auto_corr_daily(j) + sqrt (1-auto_corr_daily(j)*auto_corr_daily(j)) * trange_random
- 
-      			spcorr = sp_pcp
-      			call field_rand (nspl1, nspl2, pcp_random)
+
+      			call field_rand_nopointer (nspl1, nspl2, sp_wght_prcp, sp_sdev_prcp, sp_ipos_prcp, sp_jpos_prcp, sp_num_prcp, pcp_random)
       			pcp_rndnum(:, :, istep) = trange_random * tp_corr_daily (j) + sqrt (1-tp_corr_daily (j)*tp_corr_daily (j)) * pcp_random
 			  end if
 		  end do ! end loop days
@@ -612,7 +550,7 @@ program generate_rndnum
 		  write( mmstr, '(i6)' )  i*100+j
 		  write (suffix, '(I3.3)') iens
 		  out_name = trim(out_forc_name_base) // '/scrf.' // trim(mmstr) // '.' // trim(suffix) // '.nc'
-! 		  call save_rndnum (pcp_rndnum, tmean_rndnum, trange_rndnum, nx, ny, ntimes, lat_out, lon_out, hgt_out, out_name, ierr)
+		  call save_rndnum (pcp_rndnum, tmean_rndnum, trange_rndnum, nx, ny, ntimes, lat_out, lon_out, hgt_out, out_name, ierr)
           deallocate (pcp_rndnum, tmean_rndnum, trange_rndnum)
       end do !end month
     end do !end year
