@@ -239,6 +239,7 @@ program generate_estimate
   real (dp), dimension (:, :), allocatable :: sp_sdev
   integer (i4b), dimension (:,:,:), allocatable :: sp_ipos, sp_jpos
   integer (i4b), dimension (:,:), allocatable ::sp_num	
+  real (dp) :: tscale = 1.5  ! scale factor for tmean/trange error to enable larger spread
 !   integer (i4b), dimension (:), pointer :: iorder ! i-position, in processing order
 !   integer (i4b), dimension (:), pointer :: jorder ! j-position, in processing order
 
@@ -399,8 +400,8 @@ program generate_estimate
  
   !sanity check on the observed maximum value in transformed anomaly space
   ! just set a loose constraint here.
-  where(obs_max_pcp .gt. 20.)
-    obs_max_pcp = 20.0
+  where(obs_max_pcp .gt. 30.)
+    obs_max_pcp = 30.0
   end where
 
   
@@ -461,9 +462,9 @@ program generate_estimate
   ! allocate space for variables and random numbers
   allocate (pcp_out(nx, ny, ntimes), tmean_out(nx, ny, ntimes), trange_out(nx, ny, ntimes), stat=ierr)
   if (ierr .ne. 0) call exit_scrf (1, 'problem allocating for 2-d output variables')
-  pcp_out = 0.0
-  tmean_out = 0.0
-  trange_out = 0.0
+  pcp_out = -999.0
+  tmean_out = -999.0
+  trange_out = -999.0
   
   allocate (pcp_rndnum(nx, ny, ntimes), tmean_rndnum(nx, ny, ntimes), trange_rndnum(nx, ny, ntimes), stat=ierr)
   if (ierr .ne. 0) call exit_scrf (1, 'problem allocating for 2-d output random numbers')
@@ -505,25 +506,24 @@ program generate_estimate
        
 !       do igrd = 1, nspl1 * nspl2
         ! identify the (i,j) position of the igrd-th point
-        do isp1 = 1, nspl1
-          do isp2 = 1, nspl2
         ! isp1 = iorder (igrd) ! iorder is row number
-!         isp2 = jorder (igrd) ! horder is col number
+		! isp2 = jorder (igrd) ! horder is col number
+        do isp1 = 1, nspl1
+        do isp2 = 1, nspl2
  
         ! only compute values for valid grid points
         if (grid%elv(isp1, isp2) .gt.-300.0) then
+        
+          ! pop and pcp
           ! find cumulative probability
           acorr = real (pcp_random(isp1, isp2), kind(sp)) / sqrt (2._sp)
           aprob = erfcc (acorr)
           cprob = (2.d0-real(aprob, kind(dp))) / 2.d0
-
           if (cprob .lt. (1.0_dp-real(pop(isp1, isp2, istep), kind(dp)))) then 
             pcp_out (isp1, isp2, istep) = 0.0d0
           else 
             ! scale cumulative probability by regression pop
-            cs = (cprob-(1.0_dp-real(pop(isp1, isp2, istep), kind(dp)))) / real (pop(isp1, isp2, &
-           & istep), kind(dp))
- 
+            cs = (cprob-(1.0_dp-real(pop(isp1, isp2, istep), kind(dp)))) / real (pop(isp1, isp2, istep), kind(dp))
             ! convert cs to a z-score from standard normal
             ! use erfinv
             if (cs .le. 3e-5) then
@@ -535,71 +535,46 @@ program generate_estimate
               !find the value corresponding to cumulative probability cs in N(0,1)
               rn = sqrt (2._sp) * erfinv ((2._sp*real(cs, kind(sp)))-1.0_sp) 
             end if
- 
-            cs_percentile = ceiling(cs*100.)
-            if(cs_percentile .eq. 0) then
-              cs_percentile = 1
+            
+            if(pcp_error(isp1,isp2,istep)<0.1) then
+               pcp_error(isp1,isp2,istep) = 0.1
+            end if
+            
+            ra =  real(pcp(isp1,isp2,istep),kind(dp))+rn*real(pcp_error(isp1,isp2,istep),kind(dp))
+            ra = ((ra*(1.0/transform))+1.0_dp)**transform ! reverse box-cox transformation
+
+            obs_max = 1.5*((((obs_max_pcp(isp1,isp2,istep)+0.2*cs)*(1.0/transform))+1.0)**transform)
+            if(ra .gt. obs_max) then
+                ra = obs_max
             endif
 
-            !time mode defines how ensemble values are generated
-            !TGQ: dailt_anom should be after daily
-!             if (trim(time_mode) .eq. 'daily' .or. trim(time_mode) .eq. 'DAILY') then
-              
-              if(pcp_error(isp1,isp2,istep)<0.1) then
-                pcp_error(isp1,isp2,istep) = 0.1
-              endif
-              ra =  real(pcp(isp1,isp2,istep),kind(dp))+rn*real(pcp_error(isp1,isp2,istep),kind(dp))
-              ra = ((ra*(1.0/transform))+1.0_dp)**transform ! reverse box-cox transformation
-
-
-              !limit max value to obs_max_pcp + pcp_error (max station value plus some portion of error)
-              !obs_max_pcp has a upper bound of 5, and obs_max cannot be larger than 28. This may be good for
-              !daily_anom but not good for daily
-              obs_max = 1.5*((((obs_max_pcp(isp1,isp2,istep)+0.2*cs)*(1.0/transform))+1.0)**transform)
-              if(ra .gt. obs_max) then
-                ra = obs_max
-              endif
-
-              pcp_out(isp1,isp2,istep) = ra
-
-              if(pcp_out(isp1,isp2,istep) .lt. 0.1) then
+            pcp_out(isp1,isp2,istep) = ra
+            if(pcp_out(isp1,isp2,istep) .lt. 0.1) then
                 pcp_out(isp1,isp2,istep) = 0.1
-              endif
-
-            end if  !end if for precipitation time_mode check
-!           end if ! end IF statement for precip generation
+            endif
+            
+         end if  !end if for precipitation time_mode check
  
-          !time mode defines how ensemble values are generated
-!           if (trim(time_mode) .eq. 'daily' .or. trim(time_mode) .eq. 'DAILY') then
-            !TMEAN
-            ! Add by TGQ: 
-            ra = real(tmean(isp1,isp2,istep),kind(dp)) + real(tmean_random(isp1,isp2),kind(dp))*real(tmean_error(isp1,isp2,istep),kind(dp)) 
-            ! ra = real(tmean(isp1,isp2,istep),kind(dp)) + real(tmean_random(isp1,isp2),kind(dp))*real(tmean_error(isp1,isp2,istep)/3.0,kind(dp))
-            tmean_out(isp1,isp2,istep) = real(ra,kind(sp))
-            !error term for tmean seems unrealistically large in many to all situations...  Limit to roughly +/- 1 std of error rather than ~+/- 3 std
-
-            !trange
-            ! Add by TGQ
-            ra = real(trange(isp1,isp2,istep),kind(dp)) + real(trange_random(isp1,isp2),kind(dp))*real(trange_error(isp1,isp2,istep),kind(dp))
-            ! ra = real(trange(isp1,isp2,istep),kind(dp)) + real(trange_random(isp1,isp2),kind(dp))*real(trange_error(isp1,isp2,istep)/3.0,kind(dp))
-            trange_out(isp1,isp2,istep) = real(ra,kind(sp))
-            !error term for trange seems unrealistically large in many to all situations...  Limit to roughly +/- 1 std of error rather than ~+/- 3 std
-!           end if  !end of time_mode check for temperature
-
-          ! check for unrealistic and non-physical trange values
-          if (trange_out(isp1, isp2, istep) .gt. 40.0) then
-            trange_out (isp1, isp2, istep) = 40.0
-          else if (trange_out(isp1, isp2, istep) .lt. 1.0) then
-            trange_out (isp1, isp2, istep) = 1.0
-          end if
- 
-          ! check for unrealistic tmean values
-          ! values are from wiki: https://en.wikipedia.org/wiki/List_of_weather_records#North_America
-          if (tmean_out(isp1, isp2, istep) .gt. 56.0) then
+		 !Tmean
+         ra = real(tmean(isp1,isp2,istep),kind(dp)) + real(tmean_random(isp1,isp2),kind(dp))*real(tmean_error(isp1,isp2,istep),kind(dp))*tscale
+         tmean_out(isp1,isp2,istep) = real(ra,kind(sp))
+         ! check for unrealistic tmean values
+         ! values are from wiki: https://en.wikipedia.org/wiki/List_of_weather_records#North_America
+         if (tmean_out(isp1, isp2, istep) .gt. 56.0) then
             tmean_out (isp1, isp2, istep) = 56.0
-          else if (tmean_out(isp1, isp2, istep) .lt.-66.0) then
+         else if (tmean_out(isp1, isp2, istep) .lt.-66.0) then
             tmean_out (isp1, isp2, istep) = -66.0
-          end if
+         end if
+         
+         !Trange
+         ra = real(trange(isp1,isp2,istep),kind(dp)) + real(trange_random(isp1,isp2),kind(dp))*real(trange_error(isp1,isp2,istep),kind(dp))*tscale
+         trange_out(isp1,isp2,istep) = real(ra,kind(sp))
+         if (trange_out(isp1, isp2, istep) .gt. 40.0) then
+            trange_out (isp1, isp2, istep) = 40.0
+         else if (trange_out(isp1, isp2, istep) .lt. 1.0) then
+            trange_out (isp1, isp2, istep) = 1.0
+         end if
+ 
  
         else  !if elevation not valid, fill with missing
           pcp_out(isp1,isp2,istep) = -999.0
@@ -616,17 +591,12 @@ program generate_estimate
     ! ============ now WRITE out the data file ============
     print *, 'Done with ensemble member: ', iens
     write (suffix, '(I3.3)') iens
-    ! print *, 'Done with ensemble member: ', iens + start_ens - 1
-    ! write (suffix, '(I3.3)') iens + start_ens - 1
- 
-    ! setup output name
-    out_name = trim (out_forc_name_base) // '.' // trim (suffix) // '.nc'
+    out_name = trim (out_forc_name_base) // '.' // trim (suffix) // '.nc4'
     print *, trim (out_name)
  
     ! save to netcdf file
     call save_vars (pcp_out, tmean_out, trange_out, nx, ny, lat_out, lon_out, hgt_out, &
     & times(start_time:start_time+ntimes-1), out_name, ierr)
-  
     if (ierr /= 0) stop
  
   end do !end ensemble member loop

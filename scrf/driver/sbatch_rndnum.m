@@ -33,7 +33,7 @@ for i=sens:eens
     fprintf(fidout,['#SBATCH --job-name=rndnum_',num2str(i),'\n']);
     fprintf(fidout,'#SBATCH --account=rpp-kshook\n');
     fprintf(fidout,['#SBATCH --time=2-12:00:00\n']);
-    fprintf(fidout,'#SBATCH --mem=30G\n');
+    fprintf(fidout,'#SBATCH --mem=10G\n');
     
     exefile=['/home/gut428/scratch/GMET/EMDNA_out/generate_rndnum.exe'];
     fprintf(fidout,['chmod a+x ',exefile,'\n']);
