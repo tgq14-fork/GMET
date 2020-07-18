@@ -239,8 +239,8 @@ program generate_estimate
   real (dp), dimension (:, :), allocatable :: sp_sdev
   integer (i4b), dimension (:,:,:), allocatable :: sp_ipos, sp_jpos
   integer (i4b), dimension (:,:), allocatable ::sp_num	
-  real (dp) :: tscale = 1.0  ! scale factor for tmean/trange error to enable larger spread
-  real (dp) :: pscale = 1.0  ! scale factor for pcp error to enable larger spread
+  real (dp) :: tscale = 1.5  ! scale factor for tmean/trange error to enable larger spread
+  real (dp) :: pscale = 1.5  ! scale factor for pcp error to enable larger spread
 !   integer (i4b), dimension (:), pointer :: iorder ! i-position, in processing order
 !   integer (i4b), dimension (:), pointer :: jorder ! j-position, in processing order
 
