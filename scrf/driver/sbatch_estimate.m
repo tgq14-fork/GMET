@@ -7,13 +7,16 @@ gridinfo='/home/gut428/scratch/GMET/StnGridInfo/gridinfo_whole.nc';
 scrfpath='/home/gut428/scratch/GMET/EMDNA_out/SCRF';
 inpath='/home/gut428/scratch/GMET/GMET_OIinput';
 outpath='/home/gut428/scratch/GMET/EMDNA_out/Estimate';
+outsuffix='-scale1-pop3';
 
 Path_script='/Users/localuser/Downloads/scripts';
 sens=1;
 eens=100;
 
-for i=1979:2018
-    outpathi=[outpath,'/',num2str(i)];
+
+
+for i=2016:2016
+    outpathi=[outpath,'/',num2str(i),outsuffix];
     for j=1:12
         file1=['est_',num2str(i*100+j),'.txt'];
         outfile1=[Path_script,'/',file1];
@@ -38,11 +41,11 @@ for i=1979:2018
         fprintf(fidout,'#!/bin/bash\n');
         fprintf(fidout,['#SBATCH --job-name=est_',num2str(i*100+j),'\n']);
         fprintf(fidout,'#SBATCH --account=rpp-kshook\n');
-        fprintf(fidout,['#SBATCH --time=0-4:00:00\n']);
+        fprintf(fidout,['#SBATCH --time=0-2:00:00\n']);
         fprintf(fidout,'#SBATCH --mem=10G\n');
         
         fprintf(fidout,['mkdir -p ', outpathi,'\n']);
-        exefile=['/home/gut428/scratch/GMET/EMDNA_out/generate_estimate.exe'];
+        exefile=['/home/gut428/scratch/GMET/EMDNA_out/generate_estimate',outsuffix,'.exe'];
         fprintf(fidout,['chmod a+x ',exefile,'\n']);
         fprintf(fidout,[exefile,' ',file1,'\n']);
         %             fprintf(fidout,'rm *.out\n');

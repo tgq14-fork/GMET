@@ -239,7 +239,8 @@ program generate_estimate
   real (dp), dimension (:, :), allocatable :: sp_sdev
   integer (i4b), dimension (:,:,:), allocatable :: sp_ipos, sp_jpos
   integer (i4b), dimension (:,:), allocatable ::sp_num	
-  real (dp) :: tscale = 1.5  ! scale factor for tmean/trange error to enable larger spread
+  real (dp) :: tscale = 1.0  ! scale factor for tmean/trange error to enable larger spread
+  real (dp) :: pscale = 1.0  ! scale factor for pcp error to enable larger spread
 !   integer (i4b), dimension (:), pointer :: iorder ! i-position, in processing order
 !   integer (i4b), dimension (:), pointer :: jorder ! j-position, in processing order
 
@@ -540,7 +541,7 @@ program generate_estimate
                pcp_error(isp1,isp2,istep) = 0.1
             end if
             
-            ra =  real(pcp(isp1,isp2,istep),kind(dp))+rn*real(pcp_error(isp1,isp2,istep),kind(dp))
+            ra =  real(pcp(isp1,isp2,istep),kind(dp))+rn*real(pcp_error(isp1,isp2,istep),kind(dp))*pscale
             ra = ((ra*(1.0/transform))+1.0_dp)**transform ! reverse box-cox transformation
 
             obs_max = 1.5*((((obs_max_pcp(isp1,isp2,istep)+0.2*cs)*(1.0/transform))+1.0)**transform)
