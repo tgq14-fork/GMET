@@ -570,20 +570,7 @@ program generate_ensembles
     stop
   end if
   
-  
-  ! add by tgq: test pop adjustment
-  do isp1 = 1, nspl1
-     do isp2 = 1, nspl2
-        do istep = 1, ntimes
-     	   if (pop(isp1, isp2, istep) .lt. 0.1) then
-     	      if (pcp(isp1,isp2,istep) .gt. -3) then
-     	         pop(isp1, isp2, istep) = 0.1
-     	      end if
-     	   end if
-     	end do
-     end do
-  end do
-  ! add by tgq: test pop adjustment
+
 
   ! ============ loop through the ensemble members ============
   ! do iens = 1, nens
