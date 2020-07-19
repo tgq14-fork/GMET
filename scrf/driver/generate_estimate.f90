@@ -327,7 +327,7 @@ program generate_estimate
   if (ierr /= 0) stop
   error = nf90_get_var (ncid, varid, times, start= (/ start_time /), count= (/ ntimes /))
   if (ierr /= 0) stop
-  call unix_to_date(times(1),year,current_month,day,hour,minute,second)
+  call unix_to_date(times(ntimes/2+1),year,current_month,day,hour,minute,second)
  
   var_name = 'auto_corr'
   error = nf90_inq_varid (ncid, var_name, varid)
@@ -503,9 +503,11 @@ program generate_estimate
       write (suffix, '(I3.3)') iens
       out_name = trim(time_mode) // '/scrf.' // trim(mmstr) // '.' // trim(suffix) // '.nc'
       
-      print *, 'out_name', out_name
       error = nf90_open (trim(out_name), nf90_nowrite, ncid)
       if (error /= 0) stop
+      
+      print *, '1'
+      print *, iens, ntimes, nx, ny, start_time
       var_name = 'pcp_rndnum'
       error = nf90_inq_varid (ncid, var_name, varid)
       if (error /= 0) stop
@@ -526,7 +528,9 @@ program generate_estimate
       ! --------------------------------------------------------------------------------  
 
     ! Loop through time
+    print *, '2'
     do istep = 1, ntimes
+       print *, '3'
        pcp_random = pcp_rndnum(:, :, istep)
        tmean_random = tmean_rndnum(:, :, istep)
        trange_random = trange_rndnum(:, :, istep)
