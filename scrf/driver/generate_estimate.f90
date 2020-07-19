@@ -327,7 +327,7 @@ program generate_estimate
   if (ierr /= 0) stop
   error = nf90_get_var (ncid, varid, times, start= (/ start_time /), count= (/ ntimes /))
   if (ierr /= 0) stop
-  call unix_to_date(times(istep),year,current_month,day,hour,minute,second)
+  call unix_to_date(times(1),year,current_month,day,hour,minute,second)
  
   var_name = 'auto_corr'
   error = nf90_inq_varid (ncid, var_name, varid)
@@ -474,25 +474,25 @@ program generate_estimate
 
   ! --------------------------------------------------------------------------------------
   ! add by tgq: pop adjustment
-  do isp1 = 1, nspl1
-     do isp2 = 1, nspl2
-        do istep = 1, ntimes
-     	   if (pcp(isp1,isp2,istep) .gt. -3) then
-     	      if (pop(isp1, isp2, istep) .lt. 0.1) then
-     	         pop(isp1, isp2, istep) = 0.1
-     	      end if
-     	   end if
-     	   
-     	   if (pcp(isp1,isp2,istep) .gt. 0) then
-     	      if (pop(isp1, isp2, istep) .lt. 0.2) then
-     	         pop(isp1, isp2, istep) = 0.2
-     	      end if
-     	   end if
-     	end do
-     end do
-  end do
-  
-  pcp_error = pcp_error + 1
+!   do isp1 = 1, nspl1
+!      do isp2 = 1, nspl2
+!         do istep = 1, ntimes
+!      	   if (pcp(isp1,isp2,istep) .gt. -3) then
+!      	      if (pop(isp1, isp2, istep) .lt. 0.1) then
+!      	         pop(isp1, isp2, istep) = 0.1
+!      	      end if
+!      	   end if
+!      	   
+!      	   if (pcp(isp1,isp2,istep) .gt. 0) then
+!      	      if (pop(isp1, isp2, istep) .lt. 0.2) then
+!      	         pop(isp1, isp2, istep) = 0.2
+!      	      end if
+!      	   end if
+!      	end do
+!      end do
+!   end do
+!   
+!   pcp_error = pcp_error + 1
   ! add by tgq: pcp_err adjustment
 
   ! ============ loop through the ensemble members ============
