@@ -505,9 +505,6 @@ program generate_estimate
       
       error = nf90_open (trim(out_name), nf90_nowrite, ncid)
       if (error /= 0) stop
-      
-      print *, '1'
-      print *, iens, ntimes, nx, ny, start_time
       var_name = 'pcp_rndnum'
       error = nf90_inq_varid (ncid, var_name, varid)
       if (error /= 0) stop
@@ -528,9 +525,7 @@ program generate_estimate
       ! --------------------------------------------------------------------------------  
 
     ! Loop through time
-    print *, '2'
     do istep = 1, ntimes
-       print *, '3'
        pcp_random = pcp_rndnum(:, :, istep)
        tmean_random = tmean_rndnum(:, :, istep)
        trange_random = trange_rndnum(:, :, istep)

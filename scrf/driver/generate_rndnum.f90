@@ -504,7 +504,7 @@ program generate_rndnum
 		    ntimes = 30
 		  end if 
 		  if (j .eq. 2) then
-		    if (((mod(j,4) .eq. 0) .and. (mod(j,100) .ne. 0)) .or. (mod(j,400) .eq. 0)) then
+		    if (((mod(i,4) .eq. 0) .and. (mod(i,100) .ne. 0)) .or. (mod(i,400) .eq. 0)) then
 		      ntimes = 29
 		    else
 		      ntimes = 28
