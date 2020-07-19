@@ -483,17 +483,16 @@ program generate_estimate
      	      end if
      	   end if
      	   
-     	   if (pop(isp1, isp2, istep) .gt. 0.0) then
-     	       pop(isp1, isp2, istep) = pop(isp1, isp2, istep) * 1.5
-     	       if (pop(isp1, isp2, istep) .gt. 1.0) then
-     	          pop(isp1, isp2, istep) = 1.0
-     	       end if
+     	   if (pcp(isp1,isp2,istep) .gt. 0) then
+     	      if (pop(isp1, isp2, istep) .lt. 0.2) then
+     	         pop(isp1, isp2, istep) = 0.2
+     	      end if
      	   end if
      	end do
      end do
   end do
   
-!   pcp_error = pcp_error + 1
+  pcp_error = pcp_error + 1
   ! add by tgq: pcp_err adjustment
 
   ! ============ loop through the ensemble members ============
