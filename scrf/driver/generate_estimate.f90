@@ -503,6 +503,7 @@ program generate_estimate
       write (suffix, '(I3.3)') iens
       out_name = trim(time_mode) // '/scrf.' // trim(mmstr) // '.' // trim(suffix) // '.nc'
       
+      print *, 'out_name', out_name
       error = nf90_open (trim(out_name), nf90_nowrite, ncid)
       if (error /= 0) stop
       var_name = 'pcp_rndnum'
