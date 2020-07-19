@@ -239,8 +239,8 @@ program generate_estimate
   real (dp), dimension (:, :), allocatable :: sp_sdev
   integer (i4b), dimension (:,:,:), allocatable :: sp_ipos, sp_jpos
   integer (i4b), dimension (:,:), allocatable ::sp_num	
-  real (dp) :: tscale = 2.5  ! scale factor for tmean/trange error to enable larger spread
-  real (dp) :: pscale = 2.5  ! scale factor for pcp error to enable larger spread
+  real (dp) :: tscale = 1.0  ! scale factor for tmean/trange error to enable larger spread
+  real (dp) :: pscale = 1.0  ! scale factor for pcp error to enable larger spread
 !   integer (i4b), dimension (:), pointer :: iorder ! i-position, in processing order
 !   integer (i4b), dimension (:), pointer :: jorder ! j-position, in processing order
 
@@ -474,24 +474,24 @@ program generate_estimate
 
   ! --------------------------------------------------------------------------------------
   ! add by tgq: pop adjustment
-!   do isp1 = 1, nspl1
-!      do isp2 = 1, nspl2
-!         do istep = 1, ntimes
-!      	   if (pcp(isp1,isp2,istep) .gt. -3) then
-!      	      if (pop(isp1, isp2, istep) .lt. 0.1) then
-!      	         pop(isp1, isp2, istep) = 0.1
-!      	      end if
-!      	   end if
-!      	   
-!      	   if (pcp(isp1,isp2,istep) .gt. 0) then
-!      	      if (pop(isp1, isp2, istep) .lt. 0.2) then
-!      	         pop(isp1, isp2, istep) = 0.2
-!      	      end if
-!      	   end if
-!      	end do
-!      end do
-!   end do
-!   
+  do isp1 = 1, nspl1
+     do isp2 = 1, nspl2
+        do istep = 1, ntimes
+     	   if (pcp(isp1,isp2,istep) .gt. -3) then
+     	      if (pop(isp1, isp2, istep) .lt. 0.1) then
+     	         pop(isp1, isp2, istep) = 0.1
+     	      end if
+     	   end if
+     	   
+     	   if (pcp(isp1,isp2,istep) .gt. 0) then
+     	      if (pop(isp1, isp2, istep) .lt. 0.2) then
+     	         pop(isp1, isp2, istep) = 0.2
+     	      end if
+     	   end if
+     	end do
+     end do
+  end do
+  
 !   pcp_error = pcp_error + 1
   ! add by tgq: pcp_err adjustment
 
