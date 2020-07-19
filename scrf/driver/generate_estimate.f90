@@ -327,6 +327,7 @@ program generate_estimate
   if (ierr /= 0) stop
   error = nf90_get_var (ncid, varid, times, start= (/ start_time /), count= (/ ntimes /))
   if (ierr /= 0) stop
+  call unix_to_date(times(istep),year,current_month,day,hour,minute,second)
  
   var_name = 'auto_corr'
   error = nf90_inq_varid (ncid, var_name, varid)
@@ -503,24 +504,24 @@ program generate_estimate
       out_name = trim(time_mode) // '/scrf.' // trim(mmstr) // '.' // trim(suffix) // '.nc'
       
       error = nf90_open (trim(out_name), nf90_nowrite, ncid)
-      if (ierr /= 0) stop
+      if (error /= 0) stop
       var_name = 'pcp_rndnum'
       error = nf90_inq_varid (ncid, var_name, varid)
-      if (ierr /= 0) stop
+      if (error /= 0) stop
       error = nf90_get_var (ncid, varid, pcp_rndnum, start= (/ 1, 1, start_time /), count= (/ nx, ny, ntimes /))
-      if (ierr /= 0) stop
+      if (error /= 0) stop
       var_name = 'tmean_rndnum'
       error = nf90_inq_varid (ncid, var_name, varid)
-      if (ierr /= 0) stop
+      if (error /= 0) stop
       error = nf90_get_var (ncid, varid, tmean_rndnum, start= (/ 1, 1, start_time /), count= (/ nx, ny, ntimes /))
-      if (ierr /= 0) stop
+      if (error /= 0) stop
       var_name = 'trange_rndnum'
       error = nf90_inq_varid (ncid, var_name, varid)
-      if (ierr /= 0) stop
+      if (error /= 0) stop
       error = nf90_get_var (ncid, varid, trange_rndnum, start= (/ 1, 1, start_time /), count= (/ nx, ny, ntimes /))
-      if (ierr /= 0) stop
+      if (error /= 0) stop
       error = nf90_close (ncid)
-      if (ierr /= 0) stop
+      if (error /= 0) stop
       ! --------------------------------------------------------------------------------  
 
     ! Loop through time
