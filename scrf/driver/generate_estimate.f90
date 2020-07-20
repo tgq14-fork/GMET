@@ -473,27 +473,25 @@ program generate_estimate
 
 
   ! --------------------------------------------------------------------------------------
-  ! add by tgq: pop adjustment
-  do isp1 = 1, nspl1
-     do isp2 = 1, nspl2
-        do istep = 1, ntimes
-     	   if (pcp(isp1,isp2,istep) .gt. -3) then
-     	      if (pop(isp1, isp2, istep) .lt. 0.1) then
-     	         pop(isp1, isp2, istep) = 0.1
-     	      end if
-     	   end if
-     	   
-     	   if (pcp(isp1,isp2,istep) .gt. 0) then
-     	      if (pop(isp1, isp2, istep) .lt. 0.2) then
-     	         pop(isp1, isp2, istep) = 0.2
-     	      end if
-     	   end if
-     	end do
-     end do
-  end do
-  
-  pcp_error = pcp_error + 1
-  ! add by tgq: pcp_err adjustment
+!   add by tgq: pop adjustment
+!   do isp1 = 1, nspl1
+!      do isp2 = 1, nspl2
+!         do istep = 1, ntimes
+!      	   if (pcp(isp1,isp2,istep) .gt. -3) then
+!      	      if (pop(isp1, isp2, istep) .lt. 0.1) then
+!      	         pop(isp1, isp2, istep) = 0.1
+!      	      end if
+!      	   end if
+!      	   
+!      	   if (pcp(isp1,isp2,istep) .gt. 0) then
+!      	      if (pop(isp1, isp2, istep) .lt. 0.2) then
+!      	         pop(isp1, isp2, istep) = 0.2
+!      	      end if
+!      	   end if
+!      	end do
+!      end do
+!   end do
+!   add by tgq: pcp_err adjustment
 
   ! ============ loop through the ensemble members ============
   do iens = start_ens, stop_ens
