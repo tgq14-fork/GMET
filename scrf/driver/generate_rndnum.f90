@@ -470,8 +470,8 @@ program generate_rndnum
   print *, 'Generating SCRF for every month'
   do iens = start_ens, stop_ens
     initflag = 1 ! different ensemble members are independent with each other
-    do i = 1979, 2018
-      do j = 1, 12
+    do i = 2016, 2016
+      do j = 2, 2
         print *, 'Processing ens/year/month', iens, i, j
         write( mmstr, '(i2)' )  j
         ! --------------------------------------------------------------------------------
