@@ -192,9 +192,28 @@ program generate_rndnum
   real(DP)              :: combined_error           !total error of daily anomaly uncertainty and climo uncertainty
   real(SP)              :: max_pcp                  !maximum allowable precip for a grid cell
   ! add by TGQ. Regressed using station data for North America (km).
+  ! fit using Pearson correlation coefficient using (cij = exp(-dij/Clen))
+!   real(DP),dimension(12) :: clen_daily_prcp= (/290.25, 278.77, 246.90, 219.92, 183.17, 143.70, 111.21, 119.47, 183.84, 241.29, 263.62, 284.26/)
   real(DP),dimension(12) :: clen_daily_tmean= (/1058.53, 1216.52, 1137.26, 962.64, 895.36, 763.74, 629.39, 650.82, 996.21, 1129.24, 1250.76, 1152.05/)
-  real(DP),dimension(12) :: clen_daily_prcp= (/290.25, 278.77, 246.90, 219.92, 183.17, 143.70, 111.21, 119.47, 183.84, 241.29, 263.62, 284.26/)
   real(DP),dimension(12) :: clen_daily_trange= (/344.97, 352.29, 349.27, 378.64, 366.32, 346.70, 295.97, 291.39, 388.96, 483.01, 403.84, 333.49/)
+  
+  ! fit using Pearson correlation coefficient using (cij = c0 * exp(-dij/Clen))
+!   real(DP),dimension(12) :: clen_daily_prcp= (/473.46, 466.54, 444.47, 416.50, 358.62, 314.10, 273.95, 268.98, 347.72, 436.15, 471.93, 478.61/)
+!   real(DP),dimension(12) :: clen_daily_tmean= (/1343.29, 1549.95, 1394.68, 1107.41, 1023.80, 859.42, 741.51, 811.54, 1242.32, 1367.70, 1548.79, 1423.89/)
+!   real(DP),dimension(12) :: clen_daily_trange= (/629.88, 593.10, 590.16, 618.13, 571.23, 539.92, 491.83, 467.38, 588.17, 780.64, 737.76, 641.28/)
+!   real(DP),dimension(12) :: c0_daily_prcp= (/0.589, 0.571, 0.526, 0.497, 0.474, 0.427, 0.384, 0.414, 0.490, 0.523, 0.533, 0.569/)
+!   real(DP),dimension(12) :: c0_daily_tmean= (/0.811, 0.824, 0.841, 0.872, 0.872, 0.876, 0.819, 0.774, 0.816, 0.848, 0.844, 0.836/)
+!   real(DP),dimension(12) :: c0_daily_trange= (/0.521, 0.559, 0.555, 0.578, 0.600, 0.598, 0.553, 0.569, 0.622, 0.608, 0.532, 0.496/)
+  
+  ! prcp only: fit using Spearman correlation coefficient using (cij = exp(-dij/Clen))
+  real(DP),dimension(12) :: clen_daily_prcp= (/350.65, 339.90, 320.07, 306.85, 268.04, 234.21, 185.38, 185.22, 273.86, 344.70, 351.25, 346.14/)
+  
+  ! prcp only: fit using Spearman correlation coefficient using (cij = c0 * exp(-dij/Clen))
+!   real(DP),dimension (12) :: clen_daily_prcp= (/601.42, 601.27, 571.25, 533.41, 453.48, 409.87, 351.67, 351.60, 483.11, 605.22, 646.69, 626.89/)
+!   real(DP),dimension(12) :: c0_daily_prcp= (/0.583, 0.565, 0.552, 0.559, 0.558, 0.532, 0.483, 0.482, 0.541, 0.569, 0.552, 0.556/)
+  
+  
+  ! Auto corr
   real(DP),dimension(12) :: auto_corr_daily= (/0.629, 0.636, 0.648, 0.634, 0.650, 0.620, 0.559, 0.561, 0.633, 0.654, 0.652, 0.643/)
   real(DP),dimension(12) :: tp_corr_daily= (/-0.167, -0.221, -0.246, -0.277, -0.279, -0.261, -0.229, -0.249, -0.287, -0.266, -0.199, -0.151/)
   ! add by TGQ
