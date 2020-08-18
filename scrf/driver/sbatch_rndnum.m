@@ -4,7 +4,7 @@ clc;clear
 % gridinfo='/home/gut428/scratch/GMET/StnGridInfo/gridinfo_whole.nc';
 % outpath='/home/gut428/scratch/GMET/';
 gridinfo='/home/gut428/scratch/GMET/StnGridInfo/gridinfo_whole.nc';
-outpath='/home/gut428/scratch/GMET/EMDNA_out/SCRF';
+outpath='/home/gut428/scratch/GMET/EMDNA_out/SCRF_newclen';
 
 Path_script='/Users/localuser/Downloads/scripts';
 sens=1;
