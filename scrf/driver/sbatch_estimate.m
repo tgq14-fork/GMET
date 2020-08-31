@@ -4,10 +4,10 @@ clc;clear
 % gridinfo='/home/gut428/scratch/GMET/StnGridInfo/gridinfo_whole.nc';
 % outpath='/home/gut428/scratch/GMET/';
 gridinfo='/home/gut428/scratch/GMET/StnGridInfo/gridinfo_whole.nc';
-scrfpath='/home/gut428/scratch/GMET/EMDNA_out/SCRF';
+scrfpath='/home/gut428/scratch/GMET/EMDNA_out/SCRF_spearman';
 inpath='/home/gut428/scratch/GMET/GMET_OIinput';
-outpath='/home/gut428/scratch/GMET/EMDNA_out/Estimate';
-outsuffix='-scale1-pop3';
+outpath='/home/gut428/scratch/GMET/EMDNA_out/Estimate_spearman';
+outsuffix='';
 
 Path_script='/Users/localuser/Downloads/scripts';
 sens=1;
@@ -15,7 +15,7 @@ eens=100;
 
 
 
-for i=2016:2016
+for i=1979:2018
     outpathi=[outpath,'/',num2str(i),outsuffix];
     for j=1:12
         file1=['est_',num2str(i*100+j),'.txt'];
@@ -41,7 +41,7 @@ for i=2016:2016
         fprintf(fidout,'#!/bin/bash\n');
         fprintf(fidout,['#SBATCH --job-name=est_',num2str(i*100+j),'\n']);
         fprintf(fidout,'#SBATCH --account=rpp-kshook\n');
-        fprintf(fidout,['#SBATCH --time=0-2:00:00\n']);
+        fprintf(fidout,['#SBATCH --time=0-3:00:00\n']);
         fprintf(fidout,'#SBATCH --mem=10G\n');
         
         fprintf(fidout,['mkdir -p ', outpathi,'\n']);
