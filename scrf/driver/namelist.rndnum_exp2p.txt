@@ -1,0 +1,12 @@
+&PARAMS
+start_time	= 1
+ntimes		= 31
+start_ens	= 1
+stop_ens	= 100
+clen		= 150.0
+grid_name	= "../inputs/gridinfo.0625.w_subset.nc"
+climo_path      = "../outputs"
+out_forc_name_base	= "../outputs/ens_forc_ecai_anom"
+in_regr_name	= "../outputs/regress_ts.ecaiAnom.nc"
+time_mode       = "daily_anom"
+/

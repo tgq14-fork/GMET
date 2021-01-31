@@ -45,8 +45,10 @@ for rr=1:runtime
         clen_t=cmean; % uniform Clen
     else
         rng('shuffle');
-        clen_n=normrnd(cmean, cstd, [n, 1]); % random Clen
-        clen_t=normrnd(cmean, cstd, 1); % random Clen
+%         clen_n=normrnd(cmean, cstd, [n, 1]); % random Clen
+%         clen_t=normrnd(cmean, cstd, 1); % random Clen
+        clen_n=gamrnd(50, 10, [n, 1]); % random Clen
+        clen_t=gamrnd(50, 10, 1); % random Clen
     end
 
 

@@ -1,4 +1,4 @@
-program generate_rndnum
+program generate_rndnum_exp2p
 ! Creator: Guoqiang Tang, 2020
 ! Purpose: Produce spatiotemporally correlated random numbers (SCRF) for all days and 
 ! all grids in a single run
@@ -12,6 +12,7 @@ program generate_rndnum
 !                   -- no longer hardwired; clean formatting
 !                   -- adding documentation
 !                   -- altered namelist args to specify ens range
+!   Guoqiang Tang, 2021 -- adopts spatially varied parameters from Exponential 2-parameter
 ! -----------------------------------------------------------------------------
 ! Purpose:
 !   Driver for spatially correlated random field code from Martyn Clark
@@ -228,7 +229,10 @@ program generate_rndnum
   logical :: file_exists
   integer (i4b) :: initflag
   ! ========== code starts below ==============================
- 
+  
+  ! --------------------------------------------------------------------------------------
+  ! basic informations used for random number generation
+  
   ! AWW: get namelist filename from command line (no longer hardwired)
   f = 0
   do
@@ -268,7 +272,8 @@ program generate_rndnum
   spl2_start = 1
   spl1_count = nx
   spl2_count = ny
- 
+  
+  ! --------------------------------------------------------------------------------------
   ! allocate space for scrfs
   allocate (sp_pcp(nspl1, nspl2), stat=ierr)
   if (ierr .ne. 0) then
@@ -580,4 +585,4 @@ program generate_rndnum
   end do !end ensemble member loop
    
  
-end program generate_rndnum
+end program generate_rndnum_exp2p
