@@ -1,4 +1,4 @@
-module namelist_module
+module namelist_module_rndnum
   use nrtype
   implicit none
  
@@ -9,23 +9,20 @@ module namelist_module
 
   real (dp) :: clen !correlation length for scrf
 
-  character(len=1024)   :: climo_path           !base path to climatological netcdf fields
+  character(len=1024)   :: exp2p_file ! netcdf file of parameters for Exponential 2-parameter
   character (len=1024) :: grid_name !name of grid file
-  character (len=1024) :: out_forc_name_base !base output name for netcdf forcing ens file
-  character (len=1024) :: in_regr_name ! name of netcdf regression file -- input
+  character (len=1024) :: out_spcorr_prefix !base output name for spatial correlation structure
+  character (len=1024) :: out_rndnum_prefix !base output name for spatial temporal correlated random numbers
 
-  character (len=1024) :: time_mode     ! mode of ensemble generation (climo, daily climo, daily only)
- 
   ! define namelist required variables
   ! namelist / params / nens, ntimes, grid_name, out_name_base, qpe_nc_name, clen, start_time
-  namelist / params / start_ens, stop_ens, ntimes, grid_name, out_forc_name_base, in_regr_name, clen, &
-                      start_time, climo_path, time_mode
+  namelist / params / start_time, ntimes, start_ens, stop_ens, exp2p_file, grid_name, out_spcorr_prefix, out_rndnum_prefix
  
   save
 contains
  
     ! AWW-16 - updated to process namelist file given as argument
-  subroutine read_namelist (namelist_filename)
+  subroutine read_namelist_rndnum (namelist_filename)
     implicit none
  
       !input variables
@@ -47,4 +44,4 @@ contains
     return
   end subroutine
  
-end module namelist_module
+end module namelist_module_rndnum

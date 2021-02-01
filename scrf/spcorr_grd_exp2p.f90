@@ -54,15 +54,13 @@ subroutine spcorr_grd_exp2p (nspl1, nspl2, c0, s0, grid)
   use trig_degrees, only: sind, cosd ! added for the gfortran compiler
   use linkstruct ! linkage structures
   use gridweight ! grid correlation structure
-  use namelist_module, only: clen ! correlation length
 !
   implicit none
 ! input
   integer (i4b), intent (in) :: nspl1 ! # points (1st spatial dimension)
   integer (i4b), intent (in) :: nspl2 ! # points (2nd spatial dimension)
-  real (dp), intent (in) :: c0(:, :) ! two dimension correlation length parameter
-  real (dp), intent (in) :: s0(:, :) ! two dimension shape parameter
-  real (dp), dimension (:, :), intent (in) :: c0 ! two dimension parameter
+  real (dp), intent (in) :: c0m(:, :) ! two dimension correlation length parameter for a month
+  real (dp), intent (in) :: s0m(:, :) ! two dimension shape parameter for a month
   type (coords), intent (in) :: grid ! input coordniate structure containing grid information
 ! define hyper parameters
   integer (i4b) :: nnst ! number of nests
@@ -255,22 +253,22 @@ subroutine spcorr_grd_exp2p (nspl1, nspl2, c0, s0, grid)
         ! compute correlation
                   if (iprev .le. k-1) then
          ! correlation among all previously generated points (1...k-1,1...k-1) -- corr
-         			c1 = c0(ipos(iprev), jpos(iprev))
-         			s1 = s0(ipos(iprev), jpos(iprev))
+         			c1 = c0m(ipos(iprev), jpos(iprev))
+         			s1 = s0m(ipos(iprev), jpos(iprev))
          			corr1 = exp (-(dist/c1)**s1)
-         			c2 = c0(ipos(jprev), jpos(jprev))
-         			s2 = s0(ipos(jprev), jpos(jprev))
+         			c2 = c0m(ipos(jprev), jpos(jprev))
+         			s2 = s0m(ipos(jprev), jpos(jprev))
          			corr2 = exp (-(dist/c2)**s2)
                     corr (iprev, jprev) = (corr1 + corr2)/2
                     corr (jprev, iprev) = corr (iprev, jprev)
                   else
          ! correlation between all previously generated points and the current point -- gvec
                     if (jprev .le. k-1) then 
-                    	c1 = c0(isp1, isp2) ! current point
-         				s1 = s0(isp1, isp2)
+                    	c1 = c0m(isp1, isp2) ! current point
+         				s1 = s0m(isp1, isp2)
          				corr1 = exp (-(dist/c1)**s1)
-         				c2 = c0(ipos(jprev), jpos(jprev)) ! jth previous point
-         				s2 = s0(ipos(jprev), jpos(jprev))
+         				c2 = c0m(ipos(jprev), jpos(jprev)) ! jth previous point
+         				s2 = s0m(ipos(jprev), jpos(jprev))
          				corr2 = exp (-(dist/c2)**s2)
                     	gvec (jprev) = (corr1 + corr2)/2
                     end if
