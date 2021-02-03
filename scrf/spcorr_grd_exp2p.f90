@@ -342,10 +342,9 @@ subroutine spcorr_grd_exp2p (nspl1, nspl2, c0m, s0m, grid, sp_wght_var, sp_sdev_
             end if ! ( if k gt 2 )
             
             if ( ( any(abs(wght(1:k-1)) .gt. 1) ) .or. (isnan(sdev)) ) then
-            	print *, 'nan', iprc, isp1, isp2
-            	print *, wght
+            	print *, 'anomaly spcc', iprc, isp1, isp2
+            	print *, wght(1:k-1)
             	print *, sdev
-            	stop
             end if 
 
      ! deallocate correlation arrays

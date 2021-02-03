@@ -12,7 +12,11 @@ stop_date=20191231;
 cross_cc_flag=-1;
 exp2p_file=sprintf('/home/gut428/EMGLB/8DeterministicEstimate/Clen/exp2p_global_parameter_%s.nc',var);
 cross_file_prefix='xxx';
-cc_file=sprintf('/home/gut428/EMGLB/8DeterministicEstimate/auto_cross_corr/auto_cc_Spearman_%s.nc',var);
+if strcmp(var,'prcp') || strcmp(var,'wind')
+   cc_file=sprintf('/home/gut428/EMGLB/8DeterministicEstimate/auto_cross_corr/auto_cc_Spearman_%s.nc',var);
+else
+   cc_file=sprintf('/home/gut428/EMGLB/8DeterministicEstimate/auto_cross_corr/auto_cc_Pearson_%s.nc',var); 
+end
 grid_name='/scratch/gwf/gwf_cmt/gut428/SCRF/topography_attribute_global.nc';
 path_spcorr=sprintf('/scratch/gwf/gwf_cmt/gut428/SCRF/spcc_struct_%s',var);
 out_spcorr_prefix=[path_spcorr, '/spcorr_'];
