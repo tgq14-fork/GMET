@@ -372,10 +372,12 @@ program generate_rndnum_exp2p
       		  ! update temporally isolated random number (rndnum_2D) using random number from previous time step or from another variable
       		  do i = 1, nspl1
 			    do j = 1, nspl2
-			      if (cross_cc_flag .lt. 0) then
-      		      	rndnum_3D(i,j,istep)=old_random(i,j)*cc_lcm(i,j) + sqrt(1 - cc_lcm(i,j)*cc_lcm(i,j))*rndnum_2D(i,j)
-      		      else
-      		      	rndnum_3D(i,j,istep)=rndnum_3D_forcross(i,j,istep)*cc_lcm(i,j) + sqrt(1 - cc_lcm(i,j)*cc_lcm(i,j))*rndnum_2D(i,j)
+			      if (grid%elv(i, j) .gt. -2000)) then ! valid dem pixel (mask)
+					  if (cross_cc_flag .lt. 0) then
+						rndnum_3D(i,j,istep)=old_random(i,j)*cc_lcm(i,j) + sqrt(1 - cc_lcm(i,j)*cc_lcm(i,j))*rndnum_2D(i,j)
+					  else
+						rndnum_3D(i,j,istep)=rndnum_3D_forcross(i,j,istep)*cc_lcm(i,j) + sqrt(1 - cc_lcm(i,j)*cc_lcm(i,j))*rndnum_2D(i,j)
+					  end if
       		      end if
       		    end do
       		  end do
