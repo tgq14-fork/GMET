@@ -1,4 +1,4 @@
-subroutine field_rand_nopointer (nspl1, nspl2, sp_wght, sp_sdev, sp_ipos, sp_jpos, sp_num, cfield)
+subroutine field_rand_nopointer (nspl1, nspl2, sp_wght, sp_sdev, sp_ipos, sp_jpos, sp_num, iorder1d, jorder1d, cfield)
 ! no longer use 
 
 ! ----------------------------------------------------------------------------------------
@@ -48,6 +48,8 @@ subroutine field_rand_nopointer (nspl1, nspl2, sp_wght, sp_sdev, sp_ipos, sp_jpo
   real (dp), intent (in) :: sp_sdev(:, :)
   integer (i4b), intent (in) :: sp_ipos(:,:,:), sp_jpos(:,:,:)
   integer (i4b), intent (in) ::sp_num(:,:)
+  integer (i4b), intent (in) :: iorder1d(:), jorder1d(:)
+  
 ! Add by TGQ
   
 !
@@ -73,11 +75,12 @@ subroutine field_rand_nopointer (nspl1, nspl2, sp_wght, sp_sdev, sp_ipos, sp_jpo
 
   ! ----------------------------------------------------------------------------------------
   ! (1) GET THE NUMBER OF X AND Y POINTS AND ALLOCATE SPACE FOR THE RANDOM GRID
-  ! ----------------------------------------------------------------------------------------
-  
+  ! ---------------------------------------------------------------------------------------- 
   nlon = size (sp_num, 1)
   nlat = size (sp_num, 2)
   allocate (cran(nlon, nlat), stat=ierr)
+  cran = -9999.0
+  
   if (ierr .ne. 0) call exit_scrf (1, 'CRAN: PROBLEM ALLOCATING SPACE')
   ! ----------------------------------------------------------------------------------------
   ! (1) GENERATE GRID OF RANDOM NUMBERS
@@ -85,32 +88,37 @@ subroutine field_rand_nopointer (nspl1, nspl2, sp_wght, sp_sdev, sp_ipos, sp_jpo
   ! loop through the grid points
   do igrd = 1, nlon * nlat
   ! identify the (i,j) position of the igrd-th point
-    ilon = iorder (igrd)
-    ilat = jorder (igrd)
+    ilon = iorder1d (igrd)
+    ilat = jorder1d (igrd)
   ! assign a random number to the first grid-point
-    if ((ilon .eq. 1) .and. (ilat .eq. 1)) then
-      call gasdev (aran)
-      cran (ilon, ilat) = aran
-  ! process gridpoints 2,...,n
-    else
-    ! get the number of "previously generated points"
-      nprv = sp_num(ilon, ilat)
-      allocate (vprv(nprv), stat=ierr)
-      if (ierr .ne. 0) call exit_scrf (1, 'problem allocating array [field_rand.f90]')
-    ! build a vector of previously generated points
-      do iprev = 1, nprv
-        jlon = sp_ipos(ilon, ilat, iprev)! i-position of previously generated point
-        jlat = sp_jpos(ilon, ilat, iprev)! j-position of previously generated point
-        vprv (iprev) = cran (jlon, jlat)! (previously generated point)
-      end do ! iprev
-    ! and generate the "current" point
-      call gasdev (aran)
-      xbar = dot_product (vprv(1:nprv), sp_wght(ilon, ilat, 1:nprv))
-      cran (ilon, ilat) = xbar + sp_sdev(ilon, ilat) * aran
-    ! free up VPRV so that we can use it again for the next grid
-      deallocate (vprv, stat=ierr)
-      if (ierr .ne. 0) call exit_scrf (1, 'problem deallocating array [field_rand.f90]')
-    end if ! (if not the first point)
+    if ((ilon .gt. 0) .and. (ilat .gt. 0)) then ! whether the grid should be run
+    
+		if ((ilon .eq. 1) .and. (ilat .eq. 1)) then
+		  call gasdev (aran)
+		  cran (ilon, ilat) = aran
+	  ! process gridpoints 2,...,n
+		else
+		! get the number of "previously generated points"
+		  nprv = sp_num(ilon, ilat)
+		  allocate (vprv(nprv), stat=ierr)
+		  if (ierr .ne. 0) call exit_scrf (1, 'problem allocating array [field_rand.f90]')
+		! build a vector of previously generated points
+		  do iprev = 1, nprv
+			jlon = sp_ipos(ilon, ilat, iprev)! i-position of previously generated point
+			jlat = sp_jpos(ilon, ilat, iprev)! j-position of previously generated point
+			vprv (iprev) = cran (jlon, jlat)! (previously generated point)
+		  end do ! iprev
+		! and generate the "current" point
+		  call gasdev (aran)
+		  xbar = dot_product (vprv(1:nprv), sp_wght(ilon, ilat, 1:nprv))
+		  cran (ilon, ilat) = xbar + sp_sdev(ilon, ilat) * aran  
+	  
+		! free up VPRV so that we can use it again for the next grid
+		  deallocate (vprv, stat=ierr)
+		  if (ierr .ne. 0) call exit_scrf (1, 'problem deallocating array [field_rand.f90]')
+		end if ! (if not the first point)
+    
+    end if 
   end do ! igrd
 !
 

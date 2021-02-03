@@ -1,4 +1,4 @@
-subroutine spcorr_grd_exp2p (nspl1, nspl2, c0, s0, grid)
+subroutine spcorr_grd_exp2p (nspl1, nspl2, c0m, s0m, grid, sp_wght_var, sp_sdev_var, sp_ipos_var, sp_jpos_var, sp_num_var, iorder1d, jorder1d)
 ! ----------------------------------------------------------------------------------------
 ! Creator:
 !   Martyn Clark, 2006, 2008
@@ -62,8 +62,15 @@ subroutine spcorr_grd_exp2p (nspl1, nspl2, c0, s0, grid)
   real (dp), intent (in) :: c0m(:, :) ! two dimension correlation length parameter for a month
   real (dp), intent (in) :: s0m(:, :) ! two dimension shape parameter for a month
   type (coords), intent (in) :: grid ! input coordniate structure containing grid information
+! output  
+  real (dp), intent (out), allocatable :: sp_wght_var(:,:,:)
+  real (dp), intent (out), allocatable :: sp_sdev_var(:,:)
+  integer (i4b), intent (out), allocatable :: sp_ipos_var(:,:,:), sp_jpos_var(:,:,:)
+  integer (i4b), intent (out), allocatable :: sp_num_var(:,:)
+  integer (i4b), intent (out), allocatable :: iorder1d(:), jorder1d(:)
+  
 ! define hyper parameters
-  integer (i4b) :: nnst ! number of nests
+  integer (i4b) :: nnst, num ! number of nests
   integer (i4b) :: nloc ! number of local points used
 !REAL(DP)                                     :: CLEN        ! correlation length
 ! define looping variables
@@ -83,10 +90,10 @@ subroutine spcorr_grd_exp2p (nspl1, nspl2, c0, s0, grid)
 ! compute correlation between points
   real (dp) :: lat1, lon1 ! lat-lon of 1st prev generated point
   real (dp) :: lat2, lon2 ! lat-lon of 2nd prev generated point
-  real (dp) :: c1, s1, c2, s2, corr1, corr2 ! c0, s0 values used to calculate correlation (corr1, corr2) between two points
+  real (dp) :: c1, s1, c2, s2, cmean, smean, corr1, corr2 ! c0, s0 values used to calculate correlation (corr1, corr2) between two points
   real (dp) :: dist ! distance between points (km)
-  real (sp), dimension (:, :), allocatable :: corr ! correlation among prev generated points
-  real (sp), dimension (:), allocatable :: gvec ! corr btw prev gen pts & current point
+  real (sp), dimension (:, :), allocatable :: corr, corr_uniform ! correlation among prev generated points
+  real (sp), dimension (:), allocatable :: gvec, gvec_uniform ! corr btw prev gen pts & current point
 ! compute weights and variance
   real (sp), dimension (:), allocatable :: twgt ! copy of GVEC
   integer (i4b), dimension (:), allocatable :: indx ! row permutation (ludcmp)
@@ -103,6 +110,26 @@ subroutine spcorr_grd_exp2p (nspl1, nspl2, c0, s0, grid)
   if ( .not. init) then
     if (associated(spcorr)) return
   end if
+  
+  ! calculate mean of c0m and mean of s0m
+  num = 0
+  cmean = 0.0
+  smean = 0.0
+  do isp1 = 1, nspl1
+      do isp2 = 1, nspl2
+      	 if ( grid%elv(isp1, isp2) .gt. -2000 ) then
+      	    cmean = cmean + c0m(isp1, isp2)
+      	    smean = smean + s0m(isp1, isp2)
+      	    num = num + 1
+      	 end if
+      end do
+  end do
+  cmean = cmean/num
+  smean = smean/num
+  print *, 'cmean/smean', cmean, smean
+  
+  num = 0
+
 ! ----------------------------------------------------------------------------------------
 ! (1) DEFINE HYPER-PARAMETERS
 ! ----------------------------------------------------------------------------------------
@@ -139,15 +166,7 @@ subroutine spcorr_grd_exp2p (nspl1, nspl2, c0, s0, grid)
     end do
   end if
 ! allocate space for the processing order
-  if (associated(iorder)) then
-    deallocate (iorder, stat=ierr)
-    if (ierr .ne. 0) call exit_scrf (1, ' problem deallocating space for the processing order ')
-  end if
-  if (associated(jorder)) then
-    deallocate (jorder, stat=ierr)
-    if (ierr .ne. 0) call exit_scrf (1, ' problem deallocating space for the processing order ')
-  end if
-  allocate (iorder(nspl1*nspl2), jorder(nspl1*nspl2), stat=ierr) ! iorder is row number
+  allocate (iorder1d(nspl1*nspl2), jorder1d(nspl1*nspl2), stat=ierr)
   if (ierr .ne. 0) call exit_scrf (1, ' problem allocating space for the processing order ')
 ! ----------------------------------------------------------------------------------------
 ! (3) LOOP THROUGH THE DIFFERENT GRID RESOLUTIONS (PROCESS COARSE RESOLUTION FIRST)
@@ -164,7 +183,7 @@ subroutine spcorr_grd_exp2p (nspl1, nspl2, c0, s0, grid)
     do isp1 = 1, nspl1, incr
       do isp2 = 1, nspl2, incr
    ! check that "current" point has not been generated yet
-        if ( .not. gmsk(isp1, isp2)) then
+        if ((.not. gmsk(isp1, isp2)) .and. (grid%elv(isp1, isp2) .gt. -2000)) then
     ! allocate space to store the (i,j) position, and weights
           if (allocated(ipos)) then
             deallocate (ipos, stat=ierr)
@@ -185,8 +204,8 @@ subroutine spcorr_grd_exp2p (nspl1, nspl2, c0, s0, grid)
     ! increment IPRC
           iprc = iprc + 1
     ! save the (i,j) position of iprc
-          iorder (iprc) = isp1
-          jorder (iprc) = isp2
+          iorder1d (iprc) = isp1
+          jorder1d (iprc) = isp2
     ! ------------------------------------------------------------------------------------
     ! (5) IDENTIFY PREVIOUSLY GENERATED POINTS
     ! ------------------------------------------------------------------------------------
@@ -218,8 +237,16 @@ subroutine spcorr_grd_exp2p (nspl1, nspl2, c0, s0, grid)
               deallocate (corr, stat=ierr)
               if (ierr .ne. 0) call exit_scrf (1, ' probelm deallocating corr ')
             end if
+            if (allocated(corr_uniform)) then
+              deallocate (corr_uniform, stat=ierr)
+              if (ierr .ne. 0) call exit_scrf (1, ' probelm deallocating corr_uniform ')
+            end if
             if (allocated(gvec)) then
               deallocate (gvec, stat=ierr)
+              if (ierr .ne. 0) call exit_scrf (1, ' probelm deallocating gvec ')
+            end if
+            if (allocated(gvec_uniform)) then
+              deallocate (gvec_uniform, stat=ierr)
               if (ierr .ne. 0) call exit_scrf (1, ' probelm deallocating gvec ')
             end if
             if (allocated(twgt)) then
@@ -230,7 +257,7 @@ subroutine spcorr_grd_exp2p (nspl1, nspl2, c0, s0, grid)
               deallocate (indx, stat=ierr)
               if (ierr .ne. 0) call exit_scrf (1, ' probelm deallocating indx ')
             end if
-            allocate (corr(k-1, k-1), gvec(k-1), twgt(k-1), indx(k-1), stat=ierr)
+            allocate (corr(k-1, k-1), corr_uniform(k-1, k-1), gvec(k-1), gvec_uniform(k-1), twgt(k-1), indx(k-1), stat=ierr)
             if (ierr .ne. 0) call exit_scrf (1, ' problem allocating space for corr, gvec, twgt, or&
            & indx ')
      ! Note that the vector of previously generated points includes the current point as its
@@ -241,6 +268,7 @@ subroutine spcorr_grd_exp2p (nspl1, nspl2, c0, s0, grid)
               do jprev = 1, iprev
                 if (iprev .eq. jprev) then
                   if (iprev .le. k-1) corr (iprev, jprev) = 1.0D0 ! grid points are the same, correlation=1
+                  if (iprev .le. k-1) corr_uniform (iprev, jprev) = 1.0D0
                 else
         ! identify lat-lon of previously generated points
                   lon1 = grid%lon (ipos(iprev), jpos(iprev))! NOTE, iprev, lon
@@ -261,6 +289,9 @@ subroutine spcorr_grd_exp2p (nspl1, nspl2, c0, s0, grid)
          			corr2 = exp (-(dist/c2)**s2)
                     corr (iprev, jprev) = (corr1 + corr2)/2
                     corr (jprev, iprev) = corr (iprev, jprev)
+                    
+                    corr_uniform (iprev, jprev) = exp (-(dist/cmean)**smean)
+                    corr_uniform (jprev, iprev) = corr_uniform (iprev, jprev)
                   else
          ! correlation between all previously generated points and the current point -- gvec
                     if (jprev .le. k-1) then 
@@ -271,11 +302,13 @@ subroutine spcorr_grd_exp2p (nspl1, nspl2, c0, s0, grid)
          				s2 = s0m(ipos(jprev), jpos(jprev))
          				corr2 = exp (-(dist/c2)**s2)
                     	gvec (jprev) = (corr1 + corr2)/2
+                    	gvec_uniform(jprev) = exp (-(dist/cmean)**smean)
                     end if
                   end if ! switch between corr and gvec
                 end if ! if the points are the same
               end do ! jprev
             end do ! iprev
+            
      ! ------------------------------------------------------------------------------------
      ! (7) COMPUTE THE WEIGHTS
      ! ------------------------------------------------------------------------------------
@@ -297,7 +330,24 @@ subroutine spcorr_grd_exp2p (nspl1, nspl2, c0, s0, grid)
       ! save weights and variance
               wght (1:k-1) = twgt (1:k-1)
               sdev = sqrt (1.-dot_product(gvec(1:k-1), twgt(1:k-1)))
+              ! check if distributed c0/s0 parameter works well
+              if ( ( any(abs(wght) .gt. 1) ) .or. (isnan(sdev)) ) then
+                  twgt (1:k-1) = gvec_uniform (1:k-1)
+                  call ludcmp (corr_uniform, indx, tmp)
+                  call lubksb (corr_uniform, indx, twgt)
+                  num = num + 1
+              end if
+              wght (1:k-1) = twgt (1:k-1)
+              sdev = sqrt (1.-dot_product(gvec(1:k-1), twgt(1:k-1)))
             end if ! ( if k gt 2 )
+            
+            if ( ( any(abs(wght(1:k-1)) .gt. 1) ) .or. (isnan(sdev)) ) then
+            	print *, 'nan', iprc, isp1, isp2
+            	print *, wght
+            	print *, sdev
+            	stop
+            end if 
+
      ! deallocate correlation arrays
             if (allocated(corr)) then
               deallocate (corr, stat=ierr)
@@ -362,6 +412,7 @@ subroutine spcorr_grd_exp2p (nspl1, nspl2, c0, s0, grid)
             if (ierr .ne. 0) call exit_scrf (1, ' problem deallocating wght` ')
           end if
         end if ! if the point has not been generated yet
+        
       end do ! ilat
     end do ! ilon
   end do ! ires
@@ -370,6 +421,40 @@ subroutine spcorr_grd_exp2p (nspl1, nspl2, c0, s0, grid)
     deallocate (gmsk, stat=ierr)
     if (ierr .ne. 0) call exit_scrf (1, ' problem deallocating space for mask ')
   end if
+  
+  print *, 'number of grids using uniform parameters (cmean/smean):', num
+  
+! allocate pointers to simple arrays for output. Just a simple and temporal conversion
+  if (allocated(sp_wght_var)) deallocate (sp_wght_var)
+  if (allocated(sp_ipos_var)) deallocate (sp_ipos_var)
+  if (allocated(sp_jpos_var)) deallocate (sp_jpos_var)
+  if (allocated(sp_num_var)) deallocate (sp_num_var)
+  if (allocated(sp_sdev_var)) deallocate (sp_sdev_var)
+  allocate (sp_wght_var(nspl1,nspl2,maxp), sp_ipos_var(nspl1,nspl2,maxp), & 
+    & sp_jpos_var(nspl1,nspl2,maxp),sp_num_var(nspl1,nspl2), sp_sdev_var(nspl1,nspl2), stat=ierr)
+   
+  sp_wght_var = 0.0
+  sp_ipos_var = 0
+  sp_jpos_var = 0
+  sp_num_var = 0
+  sp_sdev_var = 0.0
+  do isp1 = 1, nspl1
+	do isp2 = 1, nspl2
+	  if (associated(spcorr(isp1, isp2)%wght)) then
+	    sp_num_var(isp1, isp2)=size(spcorr(isp1, isp2)%wght)
+	    sp_ipos_var(isp1, isp2, 1:sp_num_var(isp1, isp2))=spcorr(isp1, isp2)%ipos
+	    sp_jpos_var(isp1, isp2, 1:sp_num_var(isp1, isp2))=spcorr(isp1, isp2)%jpos
+	    sp_wght_var(isp1, isp2, 1:sp_num_var(isp1, isp2))=spcorr(isp1, isp2)%wght
+	    sp_sdev_var(isp1, isp2) = spcorr(isp1, isp2)%sdev
+	  end if
+	end do
+  end do
+  
+  if (associated(spcorr)) then
+    deallocate (spcorr, stat=ierr)
+    if (ierr .ne. 0) call exit_scrf (1, ' problem deallocating space for the spatial correlation structure ')
+  end if
+  
 !IF (INIT) INIT=.FALSE.
 !
 ! ----------------------------------------------------------------------------------------

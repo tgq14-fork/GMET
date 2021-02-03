@@ -4,8 +4,8 @@ module namelist_module_rndnum
  
   ! integer (i4b) :: nens !number of ensemble members to generate
   integer (i4b) :: start_ens, stop_ens ! start and stop numbers of ens. members to make
-  integer (i4b) :: ntimes !number of times in timeseries to generate ensemble fields for
-  integer (i4b) :: start_time !time step to start at
+  integer (i4b) :: start_date, stop_date ! start/stop date: yyyymmdd
+  integer (i4b) :: cross_cc_flag ! whether cross cc is used (>0: use. <0: don't use)
 
   real (dp) :: clen !correlation length for scrf
 
@@ -13,10 +13,13 @@ module namelist_module_rndnum
   character (len=1024) :: grid_name !name of grid file
   character (len=1024) :: out_spcorr_prefix !base output name for spatial correlation structure
   character (len=1024) :: out_rndnum_prefix !base output name for spatial temporal correlated random numbers
+  character (len=1024) :: cc_file !netcdf file of CC_lag1 or CC_cross
+  character (len=1024) :: cross_file_prefix !file prefix of random numbers that have cross correlation with the target variable
 
   ! define namelist required variables
   ! namelist / params / nens, ntimes, grid_name, out_name_base, qpe_nc_name, clen, start_time
-  namelist / params / start_time, ntimes, start_ens, stop_ens, exp2p_file, grid_name, out_spcorr_prefix, out_rndnum_prefix
+  namelist / params / start_date, stop_date, start_ens, stop_ens, cross_cc_flag, exp2p_file, &
+    & cross_file_prefix, cc_file, grid_name, out_spcorr_prefix, out_rndnum_prefix
  
   save
 contains

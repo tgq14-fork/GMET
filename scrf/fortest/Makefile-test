@@ -61,14 +61,16 @@ DATAMS = $(patsubst %, $(MOD_DIR)/%, $(SCRF_DATAMS))
 
 # Routines taken from or modifed versions of Jason Craig's old Prob QPE code
 prob_qpe= \
-		utim.f90 \
+		generate_date_series.f90 \
 		precmod.f90 \
 		stringmod.f90 \
+		utim.f90 \
 		save_precip.f90 \
 		save_vars.f90 \
-		save_vars_rndnum.f90 \
+		save_rndnum.f90 \
 		read_nc_grid.f90 \
 		read_nc_exp2p.f90 \
+		read_nc_3Dvar.f90 \
 		read_grid_list.f90
 
 qpe = $(patsubst %, $(F_SRC_DIR)/%, $(prob_qpe))
@@ -80,7 +82,7 @@ SCRF_GEN = \
 		trig_degrees.f90 \
 		erfinv.f90 \
 		exit_scrf.f90 \
-		field_rand.f90 \
+		field_rand_nopointer.f90 \
 		spcorr_grd_exp2p.f90 \
         init_rand_seed_I4B.f90
 
@@ -103,7 +105,7 @@ INCNETCDF = -I$(PATHNETCDF)/include
 LIBSystem = -L/usr/lib -lSystem
 
 # define compiler flags
-FLAGS = -p -g -Wall -ffree-line-length-none -fmax-errors=0 -fbacktrace -fcheck=bounds
+FLAGS = -p -g -Wall -w -ffree-line-length-none -fmax-errors=0 -fbacktrace -fcheck=bounds
 
 # Define the driver routine
 SCRF_DRIVER= \

@@ -1,5 +1,6 @@
 program test
 
+
   use netcdf !netcdf
   use utim   !time utility routines
   use nrtype ! Numerical recipies types
@@ -7,26 +8,25 @@ program test
   use gridweight !grid structure used by spcorr
   use nr, only: erf, erfcc ! Numerical Recipies error function
   use namelist_module_rndnum, only: read_namelist_rndnum !namelist module
-  use namelist_module_rndnum, only: start_time, ntimes, start_ens, stop_ens, exp2p_file, grid_name, out_spcorr_prefix, out_rndnum_prefix
-  
+  use namelist_module_rndnum, only: start_date, stop_date, start_ens, stop_ens, cross_cc_flag,  &
+    & exp2p_file, cross_file_prefix, cc_file, grid_name, out_spcorr_prefix, out_rndnum_prefix
+
+
   implicit none
   
- 
   ! ######################################################################################
   ! start interface
   interface
 
- 	subroutine save_rndnum (pcp_rndnum, tmean_rndnum, trange_rndnum, nx, ny, ntimes, grdlat, grdlon, grdalt, file, error)
+ 	subroutine save_rndnum (rndnum, file, error)
       use netcdf
       use nrtype
-      real (sp), intent (in) :: pcp_rndnum (:, :, :), tmean_rndnum (:, :, :), trange_rndnum (:, :, :)
-      integer (i4b), intent (in) :: nx, ny, ntimes
-      real (dp), intent (in) :: grdlat (:), grdlon (:), grdalt (:)
+      real (sp), intent (in) :: rndnum (:, :, :)
       character (len=500), intent (in) :: file
       integer, intent (out) :: error
     end subroutine save_rndnum
  	
- 	subroutine field_rand_nopointer (nspl1, nspl2, sp_wght, sp_sdev, sp_ipos, sp_jpos, sp_num, cfield)
+ 	subroutine field_rand_nopointer (nspl1, nspl2, sp_wght, sp_sdev, sp_ipos, sp_jpos, sp_num, iorder1d, jorder1d, cfield)
   		use nrtype ! variable types (DP, I4B, etc.)
   		use nr, only: gasdev ! Num. Recipies
   		use inputdat2d ! use to relate basins to gridpoints
@@ -37,6 +37,7 @@ program test
   		real (dp), intent (in) :: sp_sdev(:, :)
   		integer (i4b), intent (in) :: sp_ipos(:,:,:), sp_jpos(:,:,:)
   		integer (i4b), intent (in) ::sp_num(:,:)
+  		integer (i4b), intent (in) :: iorder1d(:), jorder1d(:)
   		real (dp), dimension (nspl1, nspl2), intent (out) :: cfield ! correlated random field
     end subroutine field_rand_nopointer
  
@@ -62,133 +63,97 @@ program test
       real (dp), allocatable, intent (out) :: c0 (:, :, :), s0 (:, :, :)
       integer, intent (out) :: error
     end subroutine read_nc_exp2p
+    
+    subroutine read_nc_3Dvar (file_name, var_name, var_out, error)
+      use netcdf
+      use nrtype
+      character (len=*), intent (in) :: file_name
+  	  character (len=*), intent (in) :: var_name
+      real (sp), allocatable, intent (out) :: var_out (:, :, :)
+      integer, intent (out) :: error
+    end subroutine read_nc_3Dvar
+    
+    subroutine spcorr_grd_exp2p (nspl1, nspl2, c0m, s0m, grid,  sp_wght_var, sp_sdev_var, sp_ipos_var, sp_jpos_var, sp_num_var, iorder1d, jorder1d)
+      use nrtype 
+  	  use nr, only: ludcmp, lubksb 
+      use nrutil, only: arth
+      use trig_degrees, only: sind, cosd
+      use linkstruct
+      use gridweight
+      implicit none
+      integer (i4b), intent (in) :: nspl1 
+  	  integer (i4b), intent (in) :: nspl2
+  	  real (dp), intent (in) :: c0m(:, :)
+	  real (dp), intent (in) :: s0m(:, :)
+      type (coords), intent (in) :: grid
+      real (dp), intent (out) :: sp_wght_var(:,:,:)
+      real (dp), intent (out) :: sp_sdev_var(:,:)
+      integer (i4b), intent (out) :: sp_ipos_var(:,:,:), sp_jpos_var(:,:,:)
+      integer (i4b), intent (out) :: sp_num_var(:,:)
+      integer (i4b), intent (out) :: iorder1d(:), jorder1d(:)
+    end subroutine spcorr_grd_exp2p
+    
+    subroutine generate_date_series (start_date, stop_date, date_series)
+      implicit none
+      integer, intent(in):: start_date, stop_date ! start/stop date (yyyymmdd)
+      integer, intent(out), allocatable :: date_series(:, :) ! (month numbers, year/month/start_day/stop_day)
+    end subroutine generate_date_series
 
   end interface
   ! end interface
   ! ######################################################################################
  
   ! Local variables
-  integer (i4b) :: i, j, k, igrd, istep, iens, mm !counter variables
-  character(10) ::  mmstr
-  integer (i4b), dimension (1:2) :: order1 = (/ 2, 1 /)!order for reshape array
+  integer (i4b) :: i, j, k, mstep, istep, iens, mm, yy, ntimes !counter variables
+  character(10) ::  mmstr, yymmstr
   integer (i4b) :: ierr, jerr !error variables for various error checks
   integer (i4b) :: nspl1 ! # points (1st spatial dimension)
   integer (i4b) :: nspl2 ! # points (2nd spatial dimension)
-  integer (i4b) :: isp1  ! first grid dimension location
-  integer (i4b) :: isp2  ! second grid dimension location
-  real (dp), dimension (:, :), allocatable :: rho ! temporal correlation parameter
-  real (dp), dimension (:, :), allocatable :: old_random ! previous correlated random field
-  real (dp), dimension (:, :), allocatable :: pcp_random ! new correlated random field for pcp
-  real (dp), dimension (:, :), allocatable :: tmean_random ! new correlated rand field, tmean
-  real (dp), dimension (:, :), allocatable :: trange_random ! new correlated rand field, trange
- 
-  real (sp) :: acorr !value from scrf
-  real (sp) :: aprob !probability from scrf
-  real (sp) :: a_ra
-  real (sp) :: aprob_ra
- 
-  real (dp) :: cprob !cdf value from scrf
-  real (dp) :: amult !multiplier value to get actual precip from normalized value
-  real (dp) :: rn
-  real (dp) :: ra
-  real (dp) :: ra_err
-  real (dp) :: cs
-  real (dp) :: cprob_ra
-  integer(I4B)   :: cs_percentile !for climo precip distribution
- 
-  real (dp) :: transform
  
   integer :: f ! AWW for command line argument read
   character (len=200) :: namelist_filename !AWW now an argument to the program
   character (len=1024) :: arg ! AWW command line arg for configuration file
-  character (len=1024) :: out_name !base output name for netcdf files
+  character (len=1024) :: file_spcc_struct ! file name of spatial correlation structure
+  character (len=1024) :: file_scrf ! file name of output SCRF (random number)
+  character (len=1024) :: file_scrf_forcross ! file name of outside scrf for cross correlation purpose
   character (len=128) :: suffix !suffix for ensemble member output
-  character (len=1024) :: var_name !name of netcdf variable grabbed from jason's netcdf file
-  real (dp), allocatable :: lon_out (:)! lon output to netcdf
-  real (dp), allocatable :: lat_out (:)! lat output to netcdf
-  real (dp), allocatable :: hgt_out (:)! hgt output to netcdf
-  real (dp), allocatable :: lat (:, :), lon (:, :)
-  real (dp), allocatable :: c0 (:, :, :), s0 (:, :, :), c0m (:, :), s0m (:, :)
-  real (dp), allocatable :: hgt (:, :)
-  real (dp), allocatable :: slp_e (:, :)
-  real (dp), allocatable :: slp_n (:, :)
-  real (dp), allocatable :: mask (:, :)
-  real (dp), allocatable :: weight (:, :)!weights from spcorr
-  real (dp), allocatable :: std (:, :)!std from spcorr
-  real (dp), allocatable :: var (:, :, :)!generic variable
-  real (dp), allocatable :: pcp (:, :, :)!output from qpe code, normalized precip
-  real (dp), allocatable :: pop (:, :, :)!output from qpe code, normalized pop
-  real (dp), allocatable :: pcp_error (:, :, :)!error from ols regression in qpe code
-  real (dp), allocatable :: tmean (:, :, :)
-  real (dp), allocatable :: tmean_error (:, :, :)
-  real (dp), allocatable :: trange (:, :, :)
-  real (dp), allocatable :: trange_error (:, :, :)
-  real(DP)               :: obs_max !precipitation limit using observations (used as cap for ensemble members)
-
-  real (dp), allocatable :: lons (:, :)!lons array from qpe code
-  real (dp), allocatable :: lats (:, :)!lats array from qpe code
-  real (dp), allocatable :: times (:)!time vector from qpe code
-  real (dp), allocatable :: auto_corr (:)!lag-1 autocorrelation vector from qpe code
-  real (dp), allocatable :: tpc_corr (:)!temp-precip correlation vector from qpe code
-  real (dp), allocatable :: obs_max_pcp (:, :, :) !max of non-0 pcp (each tstep)
-  ! Add by TGQ
-  real (sp), allocatable :: pcp_rndnum (:, :, :)!
-  real (sp), allocatable :: pcp_cprob (:, :, :)!
-  real (sp), allocatable :: tmean_rndnum (:, :, :)!
-  real (sp), allocatable :: trange_rndnum (:, :, :)!
-  ! Add by TGQ
+  real (dp), allocatable :: lon_out (:), lat_out (:), hgt_out (:) ! lon/lat/height output to netcdf
+  real (dp), allocatable :: lat (:, :), lon (:, :), hgt (:, :), slp_e (:, :), slp_n (:, :), mask (:, :) ! grid information read from gridfile
+  real (dp), allocatable :: c0 (:, :, :), s0 (:, :, :), c0m (:, :), s0m (:, :) ! correlation model parameters read from exp2p file
+  real (sp), allocatable :: cc_lc (:, :, :), cc_lcm (:, :) ! lag1 or cross correlation
+  
+  real (sp), allocatable :: rndnum_3D (:, :, :) ! scrf (x, y, time)
+  real (sp), allocatable :: rndnum_3D_forcross (:, :, :) ! scrf from outside files for cross correlation purpose
+  real (dp), allocatable :: rndnum_2D (:, :), old_random(:, :) ! scrf (x, y)
+  
   integer (i4b) :: nx, ny !grid size
   integer (i4b) :: spl1_start, spl2_start !starting point of x,y grid
   integer (i4b) :: spl1_count, spl2_count !length of x,y grid
-  integer (i4b) :: tot_times
-  integer (i4b) :: ncid, dimid, varid, error
-  integer (i4b) :: nTimesRegression 
+  integer (i4b) :: error
 
-  !climo grid variables
-  real(SP),allocatable  :: climo_tmin(:,:,:)        !monthly climo tmax grids
-  real(SP),allocatable  :: climo_tmax(:,:,:)        !monthly climo tmin grids
-  real(SP),allocatable  :: climo_precip(:,:,:)        !climo precip grid for current day
-  real(SP),allocatable  :: climo_tmean(:,:)         !climo tmean grid for current day
-  real(SP),allocatable  :: climo_trange(:,:)        !climo trange grid for current day
-  real(SP),allocatable  :: uncert_tmean(:,:)         !uncertainty tmean grid for current month
-  real(SP),allocatable  :: uncert_trange(:,:)        !uncertainty trange grid for current month
-  logical               :: first_climo = .FALSE.    !logical for first read
-  integer               :: prev_month = -999        !previous month
-  integer               :: current_month            !current month
-  integer               :: prev_delta               !number of days from previous month for temporal interpolation
-  integer               :: next_delta               !number of days to next month for temporal interpolation
-  integer               :: year, day, hour, minute, second  !dates
-  integer,dimension(12) :: month_days = (/31,28,31,30,31,30,31,31,30,31,30,31/)
+  integer               :: year, day, hour, minute, second, monnum  !dates
   character(len=2)      :: mnth_str    !string to contain current month we're in
-  character(len=1024)   :: climo_file
-  real(DP)              :: combined_error           !total error of daily anomaly uncertainty and climo uncertainty
-  real(SP)              :: max_pcp                  !maximum allowable precip for a grid cell
-  ! add by TGQ. Regressed using station data for North America (km).
-  ! fit using Pearson correlation coefficient using (cij = exp(-dij/Clen))
-!   real(DP),dimension(12) :: clen_daily_prcp= (/290.25, 278.77, 246.90, 219.92, 183.17, 143.70, 111.21, 119.47, 183.84, 241.29, 263.62, 284.26/)
-  real(DP),dimension(12) :: clen_daily_tmean= (/1058.53, 1216.52, 1137.26, 962.64, 895.36, 763.74, 629.39, 650.82, 996.21, 1129.24, 1250.76, 1152.05/)
-  real(DP),dimension(12) :: clen_daily_trange= (/344.97, 352.29, 349.27, 378.64, 366.32, 346.70, 295.97, 291.39, 388.96, 483.01, 403.84, 333.49/)
+  integer, allocatable :: date_series(:, :), datesize(:)
 
-  ! prcp only: fit using Spearman correlation coefficient using (cij = exp(-dij/Clen))
-  real(DP),dimension(12) :: clen_daily_prcp= (/350.65, 339.90, 320.07, 306.85, 268.04, 234.21, 185.38, 185.22, 273.86, 344.70, 351.25, 346.14/)
+  ! spatial correlation structure
+  type (coords), pointer :: grid 
+  real (dp), dimension (:, :, :), allocatable :: sp_wght_var
+  real (dp), dimension (:, :), allocatable :: sp_sdev_var
+  integer (i4b), dimension (:,:,:), allocatable :: sp_ipos_var, sp_jpos_var
+  integer (i4b), dimension (:,:), allocatable ::sp_num_var
+  integer (i4b), dimension (:), allocatable :: iorder1d, jorder1d
+  integer (i4b) :: maxprev = 49 ! hard coded following spcorr_grd
   
-  ! Auto corr
-  real(DP),dimension(12) :: auto_corr_daily= (/0.629, 0.636, 0.648, 0.634, 0.650, 0.620, 0.559, 0.561, 0.633, 0.654, 0.652, 0.643/)
-  real(DP),dimension(12) :: tp_corr_daily= (/-0.167, -0.221, -0.246, -0.277, -0.279, -0.261, -0.229, -0.249, -0.287, -0.266, -0.199, -0.151/)
-  ! add by TGQ
+  logical :: file_flag
+  integer (i4b) :: initflag ! whether it is the first time step when generating scrf
 
-  type (coords), pointer :: grid !coordinate structure for grid
-  type (splnum), dimension (:, :), pointer :: sp_pcp, sp_temp, sp_trange ! structures of spatially correlated random field weights
   
-  real (dp), dimension (:, :, :), allocatable :: sp_wght_prcp, sp_wght_tmean, sp_wght_trange
-  real (dp), dimension (:, :), allocatable :: sp_sdev_prcp, sp_sdev_tmean, sp_sdev_trange
-  integer (i4b), dimension (:,:,:), allocatable :: sp_ipos_prcp, sp_jpos_prcp, sp_ipos_tmean, sp_jpos_tmean, sp_ipos_trange, sp_jpos_trange
-  integer (i4b), dimension (:,:), allocatable ::sp_num_prcp, sp_num_tmean, sp_num_trange
-  logical :: file_exists
-  integer (i4b) :: initflag, shp1, shp2, shp3
-  integer (i4b), allocatable :: shp(:)
   ! ========== code starts below ==============================
-   
+  
+
+  ! ######################################################################################
+  ! read file: part-1
+  ! read parameter/file settings from input the namelist file
   f = 0
   do
     call get_command_argument (f, arg)
@@ -197,28 +162,203 @@ program test
     f = f + 1
   end do
 
-  ! read namelist in
   call read_namelist_rndnum (namelist_filename)
   exp2p_file = trim(exp2p_file)
   grid_name = trim(grid_name)
   out_spcorr_prefix = trim(out_spcorr_prefix)
   out_rndnum_prefix = trim(out_rndnum_prefix)
   
-  print *, start_time
-  print *, ntimes
-  print *, start_ens
-  print *, stop_ens
-  print *, exp2p_file
-  print *, grid_name
-  print *, out_spcorr_prefix
-  print *, out_rndnum_prefix
+  print *, 'start_date is ', start_date
+  print *, 'stop_date is ', stop_date
+  print *, 'start_ens is ', start_ens
+  print *, 'stop_ens is ', stop_ens
+  print *, 'cross_cc_flag is', cross_cc_flag
+!   print *, 'exp2p_file is ', exp2p_file
+!   print *, 'cross_file_prefix is ', cross_file_prefix
+!   print *, 'cc_file is ', cc_file
+!   print *, 'grid_name is ', grid_name
+!   print *, 'out_spcorr_prefix is ', out_spcorr_prefix
+!   print *, 'out_rndnum_prefix is ', out_rndnum_prefix
   
+  ! Generate date series (four columns: year/month/start_day/stop_day)
+  call generate_date_series(start_date, stop_date, date_series)
+  datesize = shape(date_series)
+  monnum = datesize(1)
+  print *, 'start date', date_series(1, :)
+  print *, 'stop date', date_series(monnum, :)
+
+  ! ######################################################################################
+  ! read file: part-2
+  ! read grid file which contains information such as lat/lon/elevation etc (i.e., lat, 
+  ! lon, hgt, slp_n, slp_e, mask, nx, ny)
+
+  ! initialize error status
+  error = 0
+  ierr = 0
+  jerr = 0
+
+  !read in netcdf grid file
+  call read_nc_grid (grid_name, lat, lon, hgt, slp_n, slp_e, mask, nx, ny, error)
+  if (error .ne. 0) call exit_scrf (1, 'problem in read_nc_grid ')
+  
+  ! generate lat/lon vector only used for output purpose
+  allocate (lat_out(nx*ny), lon_out(nx*ny), hgt_out(nx*ny), stat=ierr)
+  if (ierr .ne. 0) call exit_scrf (1, 'problem allocating for 1-d output variables')
+  lon_out = pack (lon, .true.)
+  lat_out = pack (lat, .true.)
+  hgt_out = pack (hgt, .true.)
+  
+  ! set/name a few variables for generating spatial correlation structure (may be simplified in future versions)
+  nspl1 = nx
+  nspl2 = ny
+  spl1_start = 1
+  spl2_start = 1
+  spl1_count = nx
+  spl2_count = ny
+  
+  ! allocate space for a pointer that stores the grid information (only lat/lon/elevation) for later use
+  nullify (grid)
+  allocate (grid, stat=ierr)
+  if (ierr .ne. 0) call exit_scrf (1, 'problem allocating structure grid')
+  grid%idx%spl1_start = spl1_start
+  grid%idx%spl2_start = spl2_start
+  grid%idx%spl1_count = spl1_count
+  grid%idx%spl2_count = spl2_count
+  allocate (grid%lat(spl1_count, spl2_count), grid%lon(spl1_count, spl2_count), grid%elv(spl1_count, spl2_count), stat=jerr)
+  if (ierr .ne. 0 .or. jerr .ne. 0) call exit_scrf (1, ' problem allocating space for lat-lon-elev coordinates ')
+  grid%lat = lat
+  grid%lon = lon
+  grid%elv = hgt
+  
+  ! ######################################################################################
+  ! read file: part-3
+  ! read exp2p parameters
   error = 0
   call read_nc_exp2p (exp2p_file, c0, s0, error)
   if (error .ne. 0) call exit_scrf (1, 'problem in read_nc_grid ')
-  shp = shape(c0)
-  shp2 = shp(2)
-  print *, 'shape', shp2, shp
   
+  ! read auto correlation CC_lag1 or cross correlation CC_cross
+  if (cross_cc_flag .lt. 0) then
+      call read_nc_3Dvar (cc_file, 'CC_lag1', cc_lc, error)
+  else
+  	  call read_nc_3Dvar (cc_file, 'CC_cross', cc_lc, error)
+  end if
+  if (error .ne. 0) call exit_scrf (1, 'problem in reading cc using read_nc_3Dvar')
+  
+  ! ######################################################################################
+  ! Produce spatial correlation structure based on the correlation model (e.g., Exponential 2parameter)
+  ! The structure will be used in random number generation
+  print *, 'Generating spatial correlation structure for 12 months'
+  do mm = 1, 1
+      print *,'Processing month', mm
+      ! check if output file exists
+      write( mmstr, '(i2)' )  mm
+	  file_spcc_struct =  trim(out_spcorr_prefix) // 'month_'// trim(mmstr)
+	  
+	  INQUIRE(FILE=file_spcc_struct, EXIST=file_flag)
+	  if (file_flag) then
+	  	  print *, 'Outfile exists. Continue to next month.'
+	  else
+		  ! generate structure: spcorr
+		  if (associated(spcorr)) deallocate (spcorr, stat=ierr)
+		  c0m = c0(:,:,mm)
+		  s0m = s0(:,:,mm)
+		  call spcorr_grd_exp2p (nspl1, nspl2, c0m, s0m, grid, sp_wght_var, sp_sdev_var, sp_ipos_var, sp_jpos_var, sp_num_var, iorder1d, jorder1d)
+  		  
+		  ! save structure information to files
+		  open(unit=34,file= file_spcc_struct,form='unformatted',iostat=error)
+		  if(error .ne. 0) then; print *, 'Error opening station weight file', error; stop; end if
+		  write(unit=34,iostat=error) sp_wght_var, sp_ipos_var, sp_jpos_var, sp_num_var, sp_sdev_var, iorder1d, jorder1d
+		  if(error .ne. 0) then; print *, 'Error writing station weight file ', error; stop; end if
+		  close(unit=34)
+	  end if
+  end do ! end loop mm
  
+  
+  ! ######################################################################################
+  ! Generate SCRF
+  
+  ! deallocate/allocate
+  if (allocated(rndnum_2D))  deallocate (rndnum_2D, stat=ierr)
+  allocate (rndnum_2D(nspl1, nspl2), stat=ierr)
+
+  if (allocated(old_random)) deallocate (old_random, stat=ierr)
+  allocate (old_random(nspl1, nspl2), stat=ierr)
+  
+  if (allocated(sp_wght_var)) deallocate (sp_wght_var)
+  if (allocated(sp_ipos_var)) deallocate (sp_ipos_var)
+  if (allocated(sp_jpos_var)) deallocate (sp_jpos_var)
+  if (allocated(sp_num_var)) deallocate (sp_num_var)
+  if (allocated(sp_sdev_var)) deallocate (sp_sdev_var) 
+  if (allocated(iorder1d)) deallocate (iorder1d) 
+  if (allocated(jorder1d)) deallocate (jorder1d) 
+  allocate (sp_wght_var(nspl1,nspl2,maxprev), sp_ipos_var(nspl1,nspl2,maxprev), & 
+    & sp_jpos_var(nspl1,nspl2,maxprev), sp_num_var(nspl1,nspl2), sp_sdev_var(nspl1,nspl2), & 
+    & iorder1d(nspl1*nspl2), jorder1d(nspl1*nspl2), stat=ierr)
+
+  
+  ! start generation
+  print *, 'Generating SCRF for every ensemble member and every month'
+  do iens = start_ens, stop_ens
+    initflag = 1 ! different ensemble members are independent with each other
+    do mstep = 1, monnum
+        yy = date_series(mstep, 1)
+        mm = date_series(mstep, 2)
+        ntimes = date_series(mstep, 4) - date_series(mstep, 3) + 1
+        
+        print *, 'Generating random numbers: member/year/month', iens, yy, mm
+        write( mmstr, '(i2)' )  mm
+        write( yymmstr, '(i6)' )  yy*100+mm
+		write (suffix, '(I3.3)') iens
+		cc_lcm = cc_lc(:, :, mm)
+		
+        ! load spatial correlation structure
+        print *, 'load spatial correlation structure'
+        file_spcc_struct = trim(out_spcorr_prefix) // 'month_'// trim(mmstr)
+		open(unit=34,file=file_spcc_struct,form='unformatted',iostat=error)
+	    read(unit=34,iostat=error) sp_wght_var, sp_ipos_var, sp_jpos_var, sp_num_var, sp_sdev_var, iorder1d, jorder1d
+		close(unit=34)
+		
+		! if using cross correlation is true, reading reference scrf from files
+		if (cross_cc_flag .gt. 0) then
+			file_scrf_forcross = trim(cross_file_prefix) // trim(yymmstr) // '_' // trim(suffix) // '.nc'
+			call read_nc_3Dvar (file_scrf_forcross, 'rndnum', rndnum_3D_forcross, error)
+        	if (error .ne. 0) call exit_scrf (1, 'problem in reading random numbers for cross correlation')
+        end if
+		
+		! generate random numbers for every day
+		print *, 'generate random numbers'	
+	    if (allocated(rndnum_3D))  deallocate (rndnum_3D, stat=ierr)
+		allocate (rndnum_3D(nx, ny, ntimes), stat=ierr)
+		rndnum_3D = 0.0
+		
+		do istep = 1, ntimes   ! loop for all days in one month
+		   print *, 'current time step', istep, '    ///    total steps', ntimes 
+		   call field_rand_nopointer (nspl1, nspl2, sp_wght_var, sp_sdev_var, sp_ipos_var, sp_jpos_var, sp_num_var, iorder1d, jorder1d, rndnum_2D)
+		   if (initflag .eq. 1) then
+		   	  rndnum_3D(:, :, istep) = rndnum_2D
+			  initflag = 0
+		   else
+              old_random = rndnum_2D
+      		  ! update temporally isolated random number (rndnum_2D) using random number from previous time step or from another variable
+      		  do i = 1, nspl1
+			    do j = 1, nspl2
+			      if (cross_cc_flag .lt. 0) then
+      		      	rndnum_3D(i,j,istep)=old_random(i,j)*cc_lcm(i,j) + sqrt(1 - cc_lcm(i,j)*cc_lcm(i,j))*rndnum_2D(i,j)
+      		      else
+      		      	rndnum_3D(i,j,istep)=rndnum_3D_forcross(i,j,istep)*cc_lcm(i,j) + sqrt(1 - cc_lcm(i,j)*cc_lcm(i,j))*rndnum_2D(i,j)
+      		      end if
+      		    end do
+      		  end do
+		   end if
+		end do ! end loop days
+
+		! save random numbers to netcdf files
+		print *, 'save random numbers to nc file'
+		file_scrf = trim(out_rndnum_prefix) // trim(yymmstr) // '_' // trim(suffix) // '.nc'
+		call save_rndnum (rndnum_3D, file_scrf, ierr)
+          
+    end do !end month loop
+  end do !end ensemble member loop
+   
 end program test

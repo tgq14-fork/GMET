@@ -28,8 +28,8 @@ subroutine read_nc_grid (file_name, lat, lon, elev, grad_n_s, grad_w_e, mask, nx
   character (len=*), parameter :: lat_name = "latitude"
   character (len=*), parameter :: lon_name = "longitude"
   character (len=*), parameter :: elev_name = "elev"
-  character (len=*), parameter :: grad_ns_name = "gradient_n_s"
-  character (len=*), parameter :: grad_we_name = "gradient_w_e"
+  character (len=*), parameter :: grad_ns_name = "gradNS_smooth"
+  character (len=*), parameter :: grad_we_name = "gradEW_smooth"
   character (len=*), parameter :: mask_name = "mask"
 !
 !
@@ -50,20 +50,18 @@ subroutine read_nc_grid (file_name, lat, lon, elev, grad_n_s, grad_w_e, mask, nx
   if (error /= 0 .or. ndims /= 2) return
 !
   !get x,y dimensions
-  call check (nf90_inquire_dimension(ncid, dimids(1), len=nlon), "x dim error", error)
-  call check (nf90_inquire_dimension(ncid, dimids(2), len=nlat), "y dim error", error)
+  call check (nf90_inquire_dimension(ncid, dimids(1), len=nx), "x dim error", error)
+  call check (nf90_inquire_dimension(ncid, dimids(2), len=ny), "y dim error", error)
   if (error /= 0) return
-!
-  ny = nlat
-  nx = nlon
+
 !
   !allocate output variables
-  allocate (lat(nlon, nlat))
-  allocate (lon(nlon, nlat))
-  allocate (elev(nlon, nlat))
-  allocate (grad_n_s(nlon, nlat))
-  allocate (grad_w_e(nlon, nlat))
-  allocate (mask(nlon, nlat))
+  allocate (lat(nx, ny))
+  allocate (lon(nx, ny))
+  allocate (elev(nx, ny))
+  allocate (grad_n_s(nx, ny))
+  allocate (grad_w_e(nx, ny))
+  allocate (mask(nx, ny))
 !
   !get lat,lon,elev,grad_n_s,grad_w_e
 !
