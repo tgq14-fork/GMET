@@ -293,6 +293,8 @@ program generate_rndnum_exp2p
 		  write(unit=34,iostat=error) sp_wght_var, sp_ipos_var, sp_jpos_var, sp_num_var, sp_sdev_var, iorder1d, jorder1d
 		  if(error .ne. 0) then; print *, 'Error writing station weight file ', error; stop; end if
 		  close(unit=34)
+		  
+		  deallocate (sp_wght_var, sp_ipos_var, sp_jpos_var, sp_num_var, sp_sdev_var, iorder1d, jorder1d)
 	  end if
 	  
 	  call cpu_time(ctime_end) ! computation time: end 
