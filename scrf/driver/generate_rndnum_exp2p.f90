@@ -207,7 +207,9 @@ program generate_rndnum_exp2p
   datesize = shape(date_series)
   monnum = datesize(1)
   print *, 'start date', date_series(1, :)
-  print *, 'stop date', date_series(monnum, :)
+  if (monnum .gt. 1) then
+  	print *, 'stop date', date_series(monnum, :)
+  end if
 
   ! ######################################################################################
   ! read file: part-2
@@ -361,9 +363,9 @@ program generate_rndnum_exp2p
 		print *, 'generate random numbers'	
 	    if (allocated(rndnum_3D))  deallocate (rndnum_3D, stat=ierr)
 		allocate (rndnum_3D(nx, ny, ntimes), stat=ierr)
-		rndnum_3D = 0.0
+		rndnum_3D = -9999.0
 		
-		do istep = 1, ntimes   ! loop for all days in one month
+		do istep = 1, 2   ! loop for all days in one month
 		   print *, 'current time step', istep, '    ///    total steps', ntimes 
 		   call field_rand_nopointer (nspl1, nspl2, sp_wght_var, sp_sdev_var, sp_ipos_var, sp_jpos_var, sp_num_var, iorder1d, jorder1d, rndnum_2D)
 		   if (initflag .eq. 1) then

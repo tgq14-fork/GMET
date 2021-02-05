@@ -251,7 +251,7 @@ program test
   ! Produce spatial correlation structure based on the correlation model (e.g., Exponential 2parameter)
   ! The structure will be used in random number generation
   print *, 'Generating spatial correlation structure for 12 months'
-  do mm = 8, 8
+  do mm = 1, 1
       print *,'Processing month', mm
       ! check if output file exists
       write( mmstr, '(i2)' )  mm

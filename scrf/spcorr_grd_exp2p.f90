@@ -92,7 +92,7 @@ subroutine spcorr_grd_exp2p (nspl1, nspl2, c0m, s0m, grid, weight_judge, sp_wght
 ! compute correlation between points
   real (dp) :: lat1, lon1 ! lat-lon of 1st prev generated point
   real (dp) :: lat2, lon2 ! lat-lon of 2nd prev generated point
-  real (dp) :: c1, s1, c2, s2, cmean, smean, corr1, corr2 ! c0, s0 values used to calculate correlation (corr1, corr2) between two points
+  real (dp) :: c1, s1, c2, s2, cmean, smean, ck, sk, corr1, corr2 ! c0, s0 values used to calculate correlation (corr1, corr2) between two points
   real (dp) :: dist ! distance between points (km)
   real (sp), dimension (:, :), allocatable :: corr, corr_uniform ! correlation among prev generated points
   real (sp), dimension (:), allocatable :: gvec, gvec_uniform ! corr btw prev gen pts & current point
@@ -284,6 +284,17 @@ subroutine spcorr_grd_exp2p (nspl1, nspl2, c0m, s0m, grid, weight_judge, sp_wght
      ! last element.  The correlation among all previously generated points are computed over
      ! elements (1...k-1) and saved in the matrix corr.  The correlation between previously
      ! generated points (1...k-1) and the current point (k) is saved in ther vector gvec.
+     
+     ! calculate exp2p parameter for those points
+			 ck = 0.0
+			 sk = 0.0
+			 do iprev = 1, k
+				ck = ck + c0m(ipos(iprev), jpos(iprev))
+				sk = sk + s0m(ipos(iprev), jpos(iprev))
+			 end do
+			 ck = ck / k
+			 sk = sk / k
+     
             do iprev = 1, k
               do jprev = 1, iprev
                 if (iprev .eq. jprev) then
@@ -301,13 +312,7 @@ subroutine spcorr_grd_exp2p (nspl1, nspl2, c0m, s0m, grid, weight_judge, sp_wght
         ! compute correlation
                   if (iprev .le. k-1) then
          ! correlation among all previously generated points (1...k-1,1...k-1) -- corr
-         			c1 = c0m(ipos(iprev), jpos(iprev))
-         			s1 = s0m(ipos(iprev), jpos(iprev))
-         			corr1 = exp (-(dist/c1)**s1)
-         			c2 = c0m(ipos(jprev), jpos(jprev))
-         			s2 = s0m(ipos(jprev), jpos(jprev))
-         			corr2 = exp (-(dist/c2)**s2)
-                    corr (iprev, jprev) = (corr1 + corr2)/2
+                    corr (iprev, jprev) = exp (-(dist/ck)**sk)
                     corr (jprev, iprev) = corr (iprev, jprev)
                     
                     corr_uniform (iprev, jprev) = exp (-(dist/cmean)**smean)
@@ -315,13 +320,7 @@ subroutine spcorr_grd_exp2p (nspl1, nspl2, c0m, s0m, grid, weight_judge, sp_wght
                   else
          ! correlation between all previously generated points and the current point -- gvec
                     if (jprev .le. k-1) then 
-                    	c1 = c0m(isp1, isp2) ! current point
-         				s1 = s0m(isp1, isp2)
-         				corr1 = exp (-(dist/c1)**s1)
-         				c2 = c0m(ipos(jprev), jpos(jprev)) ! jth previous point
-         				s2 = s0m(ipos(jprev), jpos(jprev))
-         				corr2 = exp (-(dist/c2)**s2)
-                    	gvec (jprev) = (corr1 + corr2)/2
+                    	gvec (jprev) = exp (-(dist/ck)**sk)
                     	gvec_uniform(jprev) = exp (-(dist/cmean)**smean)
                     end if
                   end if ! switch between corr and gvec

@@ -33,9 +33,9 @@ for v=1:4
     end
     
     grid_name='/scratch/gwf/gwf_cmt/gut428/SCRF/topography_attribute_global.nc';
-    path_spcorr=sprintf('/scratch/gwf/gwf_cmt/gut428/SCRF/spcc_struct_%s',var);
+    path_spcorr=sprintf('/scratch/gwf/gwf_cmt/gut428/SCRF/spcc_struct_%s_wj_%s',var,num2str(weight_judge));
     out_spcorr_prefix=[path_spcorr, '/spcorr_'];
-    path_rndnum=sprintf('/scratch/gwf/gwf_cmt/gut428/SCRF/rndnum_%s',var);
+    path_rndnum=sprintf('/scratch/gwf/gwf_cmt/gut428/SCRF/rndnum_%s_wj_%s',var,num2str(weight_judge));
     out_rndnum_prefix=[path_rndnum,'/scrf_'];
     
     % make dir if necessary
