@@ -4,6 +4,7 @@ stop_date	= 19790102
 start_ens	= 1
 stop_ens	= 25
 cross_cc_flag = -1
+weight_judge = 0.5
 exp2p_file = "/Users/localuser/Github/EMGLOB/8DeterministicEstimate/Clen/exp2p_global_parameter_prcp.nc"
 cross_file_prefix = "/Users/localuser/Research/EMGLB/RandomNumber_trange/"
 cc_file = "/Users/localuser/Github/EMGLOB/8DeterministicEstimate/auto_cross_corr/auto_cc_Spearman_prcp.nc"

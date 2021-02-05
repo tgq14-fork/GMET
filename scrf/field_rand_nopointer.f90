@@ -110,18 +110,18 @@ subroutine field_rand_nopointer (nspl1, nspl2, sp_wght, sp_sdev, sp_ipos, sp_jpo
 		  end do ! iprev
 		! and generate the "current" point
 		  call gasdev (aran)
+! 		  sp_wght(ilon, ilat, 1:nprv) = sp_wght(ilon, ilat, 1:nprv) / sum(sp_wght(ilon, ilat, 1:nprv))
 		  xbar = dot_product (vprv(1:nprv), sp_wght(ilon, ilat, 1:nprv))
 		  cran (ilon, ilat) = xbar + sp_sdev(ilon, ilat) * aran  
 	  
 		! free up VPRV so that we can use it again for the next grid
-		  deallocate (vprv, stat=ierr)
+		deallocate (vprv, stat=ierr)
 		  if (ierr .ne. 0) call exit_scrf (1, 'problem deallocating array [field_rand.f90]')
 		end if ! (if not the first point)
     
     end if 
   end do ! igrd
-!
-
+  
   cfield = cran
 !
   return

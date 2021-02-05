@@ -8,7 +8,7 @@ program test
   use gridweight !grid structure used by spcorr
   use nr, only: erf, erfcc ! Numerical Recipies error function
   use namelist_module_rndnum, only: read_namelist_rndnum !namelist module
-  use namelist_module_rndnum, only: start_date, stop_date, start_ens, stop_ens, cross_cc_flag,  &
+  use namelist_module_rndnum, only: start_date, stop_date, start_ens, stop_ens, cross_cc_flag,  weight_judge, &
     & exp2p_file, cross_file_prefix, cc_file, grid_name, out_spcorr_prefix, out_rndnum_prefix
 
 
@@ -73,7 +73,7 @@ program test
       integer, intent (out) :: error
     end subroutine read_nc_3Dvar
     
-    subroutine spcorr_grd_exp2p (nspl1, nspl2, c0m, s0m, grid,  sp_wght_var, sp_sdev_var, sp_ipos_var, sp_jpos_var, sp_num_var, iorder1d, jorder1d)
+    subroutine spcorr_grd_exp2p (nspl1, nspl2, c0m, s0m, grid, weight_judge, sp_wght_var, sp_sdev_var, sp_ipos_var, sp_jpos_var, sp_num_var, iorder1d, jorder1d)
       use nrtype 
   	  use nr, only: ludcmp, lubksb 
       use nrutil, only: arth
@@ -85,6 +85,7 @@ program test
   	  integer (i4b), intent (in) :: nspl2
   	  real (dp), intent (in) :: c0m(:, :)
 	  real (dp), intent (in) :: s0m(:, :)
+	  real (dp), intent (in) :: weight_judge
       type (coords), intent (in) :: grid
       real (dp), intent (out) :: sp_wght_var(:,:,:)
       real (dp), intent (out) :: sp_sdev_var(:,:)
@@ -173,6 +174,7 @@ program test
   print *, 'start_ens is ', start_ens
   print *, 'stop_ens is ', stop_ens
   print *, 'cross_cc_flag is', cross_cc_flag
+  print *, 'weight_judge is ', weight_judge
 !   print *, 'exp2p_file is ', exp2p_file
 !   print *, 'cross_file_prefix is ', cross_file_prefix
 !   print *, 'cc_file is ', cc_file
@@ -249,7 +251,7 @@ program test
   ! Produce spatial correlation structure based on the correlation model (e.g., Exponential 2parameter)
   ! The structure will be used in random number generation
   print *, 'Generating spatial correlation structure for 12 months'
-  do mm = 1, 1
+  do mm = 8, 8
       print *,'Processing month', mm
       ! check if output file exists
       write( mmstr, '(i2)' )  mm
@@ -263,7 +265,7 @@ program test
 		  if (associated(spcorr)) deallocate (spcorr, stat=ierr)
 		  c0m = c0(:,:,mm)
 		  s0m = s0(:,:,mm)
-		  call spcorr_grd_exp2p (nspl1, nspl2, c0m, s0m, grid, sp_wght_var, sp_sdev_var, sp_ipos_var, sp_jpos_var, sp_num_var, iorder1d, jorder1d)
+		  call spcorr_grd_exp2p (nspl1, nspl2, c0m, s0m, grid, weight_judge, sp_wght_var, sp_sdev_var, sp_ipos_var, sp_jpos_var, sp_num_var, iorder1d, jorder1d)
   		  
 		  ! save structure information to files
 		  open(unit=34,file= file_spcc_struct,form='unformatted',iostat=error)

@@ -7,7 +7,7 @@ module namelist_module_rndnum
   integer (i4b) :: start_date, stop_date ! start/stop date: yyyymmdd
   integer (i4b) :: cross_cc_flag ! whether cross cc is used (>0: use. <0: don't use)
 
-  real (dp) :: clen !correlation length for scrf
+  real (dp) :: weight_judge ! if spcc weight > weight_judge, uniform parameter will be used instead of distributed parameter
 
   character(len=1024)   :: exp2p_file ! netcdf file of parameters for Exponential 2-parameter
   character (len=1024) :: grid_name !name of grid file
@@ -18,7 +18,7 @@ module namelist_module_rndnum
 
   ! define namelist required variables
   ! namelist / params / nens, ntimes, grid_name, out_name_base, qpe_nc_name, clen, start_time
-  namelist / params / start_date, stop_date, start_ens, stop_ens, cross_cc_flag, exp2p_file, &
+  namelist / params / start_date, stop_date, start_ens, stop_ens, cross_cc_flag, weight_judge, exp2p_file, &
     & cross_file_prefix, cc_file, grid_name, out_spcorr_prefix, out_rndnum_prefix
  
   save

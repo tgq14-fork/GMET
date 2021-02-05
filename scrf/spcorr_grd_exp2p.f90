@@ -1,4 +1,4 @@
-subroutine spcorr_grd_exp2p (nspl1, nspl2, c0m, s0m, grid, sp_wght_var, sp_sdev_var, sp_ipos_var, sp_jpos_var, sp_num_var, iorder1d, jorder1d)
+subroutine spcorr_grd_exp2p (nspl1, nspl2, c0m, s0m, grid, weight_judge, sp_wght_var, sp_sdev_var, sp_ipos_var, sp_jpos_var, sp_num_var, iorder1d, jorder1d)
 ! ----------------------------------------------------------------------------------------
 ! Creator:
 !   Martyn Clark, 2006, 2008
@@ -54,6 +54,7 @@ subroutine spcorr_grd_exp2p (nspl1, nspl2, c0m, s0m, grid, sp_wght_var, sp_sdev_
   use trig_degrees, only: sind, cosd ! added for the gfortran compiler
   use linkstruct ! linkage structures
   use gridweight ! grid correlation structure
+  use netcdf
 !
   implicit none
 ! input
@@ -61,6 +62,7 @@ subroutine spcorr_grd_exp2p (nspl1, nspl2, c0m, s0m, grid, sp_wght_var, sp_sdev_
   integer (i4b), intent (in) :: nspl2 ! # points (2nd spatial dimension)
   real (dp), intent (in) :: c0m(:, :) ! two dimension correlation length parameter for a month
   real (dp), intent (in) :: s0m(:, :) ! two dimension shape parameter for a month
+  real (dp), intent (in) :: weight_judge
   type (coords), intent (in) :: grid ! input coordniate structure containing grid information
 ! output  
   real (dp), intent (out), allocatable :: sp_wght_var(:,:,:)
@@ -102,6 +104,24 @@ subroutine spcorr_grd_exp2p (nspl1, nspl2, c0m, s0m, grid, sp_wght_var, sp_sdev_
   real (dp) :: sdev ! standard deviation of estimate
   integer (i4b) :: n ! # of prev generated points
   logical (lgt), save :: init = .true. ! true for first call to generate_rndnum_c0
+  
+  ! for saving netcdf
+  integer (i4b), allocatable :: matshp(:) ! shape of input matrix (i.e., rndnum)
+  integer (i4b) :: nx, ny, ntimes, error
+  integer :: ncid, x_dimid, y_dimid, xy_dimid, time_dimid
+  integer :: lat_varid, lon_varid, rnd_varid, varid(10)
+  integer :: count1 (1), start1 (1), count2 (2), start2 (2), count3 (3), start3 (3), dimids1(1), dimids2 (2), dimids3 (3)
+  character (len=500) :: file = 'spcorr_test.nc'
+  character (len=*), parameter :: y_name = "y"
+  character (len=*), parameter :: x_name = "x"
+  character (len=*), parameter :: xy_name = "xy"
+  character (len=*), parameter :: time_name = "time"
+  
+  ! Variable Names (lat/lon is not saved)
+  character (len=*), parameter :: lat_name = "latitude"
+  character (len=*), parameter :: lon_name = "longitude"
+  character (len=*), parameter :: rnd_name = "rndnum"
+  
 !
 ! output (none) -- structures updated in gridweight.f90
 ! ----------------------------------------------------------------------------------------
@@ -308,7 +328,7 @@ subroutine spcorr_grd_exp2p (nspl1, nspl2, c0m, s0m, grid, sp_wght_var, sp_sdev_
                 end if ! if the points are the same
               end do ! jprev
             end do ! iprev
-            
+
      ! ------------------------------------------------------------------------------------
      ! (7) COMPUTE THE WEIGHTS
      ! ------------------------------------------------------------------------------------
@@ -330,22 +350,18 @@ subroutine spcorr_grd_exp2p (nspl1, nspl2, c0m, s0m, grid, sp_wght_var, sp_sdev_
       ! save weights and variance
               wght (1:k-1) = twgt (1:k-1)
               sdev = sqrt (1.-dot_product(gvec(1:k-1), twgt(1:k-1)))
+                          
               ! check if distributed c0/s0 parameter works well
-              if ( ( any(abs(wght) .gt. 1) ) .or. (isnan(sdev)) ) then
+              if ( (any(abs(wght(1:k-1)) .gt. weight_judge)) .or. (isnan(sdev)) .or. (sdev .gt. 1) ) then
                   twgt (1:k-1) = gvec_uniform (1:k-1)
                   call ludcmp (corr_uniform, indx, tmp)
                   call lubksb (corr_uniform, indx, twgt)
+                  wght (1:k-1) = twgt (1:k-1)
+              	  sdev = sqrt (1.-dot_product(gvec_uniform(1:k-1), twgt(1:k-1)))  
                   num = num + 1
               end if
-              wght (1:k-1) = twgt (1:k-1)
-              sdev = sqrt (1.-dot_product(gvec(1:k-1), twgt(1:k-1)))
+                    
             end if ! ( if k gt 2 )
-            
-            if ( ( any(abs(wght(1:k-1)) .gt. 1) ) .or. (isnan(sdev)) ) then
-            	print *, 'anomaly spcc', iprc, isp1, isp2
-            	print *, wght(1:k-1)
-            	print *, sdev
-            end if 
 
      ! deallocate correlation arrays
             if (allocated(corr)) then
@@ -421,7 +437,7 @@ subroutine spcorr_grd_exp2p (nspl1, nspl2, c0m, s0m, grid, sp_wght_var, sp_sdev_
     if (ierr .ne. 0) call exit_scrf (1, ' problem deallocating space for mask ')
   end if
   
-  print *, 'number of grids using uniform parameters (cmean/smean):', num
+  print *, 'number/total number of grids using uniform parameters (cmean/smean):', num, iprc
   
 ! allocate pointers to simple arrays for output. Just a simple and temporal conversion
   if (allocated(sp_wght_var)) deallocate (sp_wght_var)
@@ -454,8 +470,78 @@ subroutine spcorr_grd_exp2p (nspl1, nspl2, c0m, s0m, grid, sp_wght_var, sp_sdev_
     if (ierr .ne. 0) call exit_scrf (1, ' problem deallocating space for the spatial correlation structure ')
   end if
   
+  ! ##########################################
+  ! not activated, but can be reused in future
+  ! save structure to a netcdf file for analysis
+!     matrix shape
+!   matshp = shape(sp_wght_var)
+!   nx = matshp(1)
+!   ny = matshp(2)
+!   ntimes = matshp(3)
+!   error = 0
+!   Create NEW output file
+!   call check (nf90_create(file, NF90_NETCDF4, ncid), "File creation error", error)
+!   if (error /= 0) return
+
+!   Define the dimensions.
+!   call check (nf90_def_dim(ncid, y_name, ny, y_dimid), "y dim def error", error)
+!   call check (nf90_def_dim(ncid, x_name, nx, x_dimid), "x dim def error", error)
+!   call check (nf90_def_dim(ncid, xy_name, nx*ny, xy_dimid), "xy dim def error", error)
+!   call check (nf90_def_dim(ncid, time_name, nf90_unlimited, time_dimid), "time dim def error", error)
+!   if (error /= 0) return
+
+!   Define the variables.
+!   dimids1 = (/ xy_dimid /)
+!   dimids2 = (/ x_dimid, y_dimid /)
+!   dimids3 = (/ x_dimid, y_dimid, time_dimid /)
+!   call check (nf90_def_var(ncid, 'sp_num_var', nf90_float, dimids2, varid(1), deflate_level=9), "pcp rndnum1", error)
+!   call check (nf90_def_var(ncid, 'sp_ipos_var', nf90_float, dimids3, varid(2), deflate_level=9), "pcp rndnum2", error)
+!   call check (nf90_def_var(ncid, 'sp_jpos_var', nf90_float, dimids3, varid(3), deflate_level=9), "pcp rndnum3", error)
+!   call check (nf90_def_var(ncid, 'sp_wght_var', nf90_float, dimids3, varid(4), deflate_level=9), "pcp rndnum4", error)
+!   call check (nf90_def_var(ncid, 'sp_sdev_var', nf90_float, dimids2, varid(5), deflate_level=9), "pcp rndnum5", error)
+!   call check (nf90_def_var(ncid, 'iorder1d', nf90_float, dimids1, varid(6), deflate_level=9), "pcp rndnum6", error)
+!   call check (nf90_def_var(ncid, 'jorder1d', nf90_float, dimids1, varid(7), deflate_level=9), "pcp rndnum7", error)
+!   if (error /= 0) return
+
+!   End define mode.
+!   call check (nf90_enddef(ncid), "end define mode error", error)
+!   if (error /= 0) return
+  
+!   Write variables
+!   count1 = (/ nx * ny /) 
+!   start1 = (/ 1 /) 
+!   count2 = (/ nx, ny /) 
+!   start2 = (/ 1, 1 /)
+!   count3 = (/ nx, ny, ntimes /)
+!   start3 = (/ 1, 1, 1 /)
+!   call check (nf90_put_var(ncid, varid(1), sp_num_var, start=start2, count=count2), "put rndnum error1", error)
+!   call check (nf90_put_var(ncid, varid(2), sp_ipos_var, start=start3, count=count3), "put rndnum error2", error)
+!   call check (nf90_put_var(ncid, varid(3), sp_jpos_var, start=start3, count=count3), "put rndnum error3", error)
+!   call check (nf90_put_var(ncid, varid(4), sp_wght_var, start=start3, count=count3), "put rndnum error4", error)
+!   call check (nf90_put_var(ncid, varid(5), sp_sdev_var, start=start2, count=count2), "put rndnum error5", error)
+!   call check (nf90_put_var(ncid, varid(6), iorder1d, start=start1, count=count1), "put rndnum error6", error)
+!   call check (nf90_put_var(ncid, varid(7), jorder1d, start=start1, count=count1), "put rndnum error7", error)
+!   if (error /= 0) return
+
+!   Close netcdf file
+!   call check (nf90_close(ncid), "closing file error", error)
+
+  
 !IF (INIT) INIT=.FALSE.
 !
 ! ----------------------------------------------------------------------------------------
   return
+  
+  
+  contains
+  subroutine check (status, info, error)
+    integer, intent (in) :: status
+    character (len=*), intent (in) :: info
+    integer, intent (out) :: error
+
+    if (status /= nf90_noerr) then
+      print *, trim (info) // ": " // trim (nf90_strerror(status))
+      error = 1
+    end if
+  end subroutine check
 end subroutine spcorr_grd_exp2p

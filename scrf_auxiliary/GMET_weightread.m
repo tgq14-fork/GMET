@@ -1,7 +1,7 @@
 nx=1800; ny=3600;
 ngrids=nx*ny;
 slim=49; vv=5;
-file='/Users/localuser/Research/EMGLB/RandomNumber/spcc_struct_prcp/spcorr_month_ 1-old';
+file='/Users/localuser/Research/EMGLB/RandomNumber/spcc_struct_tmean/spcorr_month_ 1';
 
 fid=fopen(file,'rb');
 len=fread(fid,1,'uint32');
