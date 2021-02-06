@@ -8,15 +8,21 @@ for v=1:4
     var=varall{v};
     
     start_date=19500101;
-    stop_date=19500102;
-    ensnum=[1,1];
+    stop_date=20191231;
+    ensnum=[1,1]; % start/stop ensemble member
+    hours=24; % run time (hour)
+    mem=10; % memory (GB)
     
-    if ismember(var,{'prcp','trange','wind'})
-        cross_cc_flag=-1; % >0: use cross option
-        weight_judge=1.5;
+    if strcmp(var,'prcp')
+        cross_cc_flag=1; % >0: use cross option
     else
         cross_cc_flag=-1;
-        weight_judge=0.7;
+    end
+    
+    if strcmp(var,'tdew')
+        weight_judge=1.5;
+    else
+        weight_judge=2;
     end
     
     exp2p_file=sprintf('/home/gut428/EMGLB/8DeterministicEstimate/Clen/exp2p_global_parameter_%s.nc',var);
@@ -33,9 +39,9 @@ for v=1:4
     end
     
     grid_name='/scratch/gwf/gwf_cmt/gut428/SCRF/topography_attribute_global.nc';
-    path_spcorr=sprintf('/scratch/gwf/gwf_cmt/gut428/SCRF/spcc_struct_%s_wj_%s',var,num2str(weight_judge));
+    path_spcorr=sprintf('/scratch/gwf/gwf_cmt/gut428/SCRF/spcc_struct_%s',var);
     out_spcorr_prefix=[path_spcorr, '/spcorr_'];
-    path_rndnum=sprintf('/scratch/gwf/gwf_cmt/gut428/SCRF/rndnum_%s_wj_%s',var,num2str(weight_judge));
+    path_rndnum=sprintf('/scratch/gwf/gwf_cmt/gut428/SCRF/rndnum_%s',var);
     out_rndnum_prefix=[path_rndnum,'/scrf_'];
     
     % make dir if necessary
@@ -49,7 +55,7 @@ for v=1:4
         
         % generate namelist file
         % file1=['namelist_',var,'_ens_',num2str(i),'.txt'];
-        file1=['namelist_',var,'_ens_',num2str(i),'_wj_',num2str(weight_judge),'.txt'];
+        file1=['namelist_',var,'_ens_',num2str(i),'.txt'];
         outfile1=[Path_script,'/',file1];
         fid=fopen(outfile1,'w');
         fprintf(fid,'&PARAMS\n');
@@ -70,13 +76,13 @@ for v=1:4
         
         % generate slurm scripts
         % outfile2=[Path_script,'/run_',var,'_ens_',num2str(i),'.sh'];
-        outfile2=[Path_script,'/run_',var,'_ens_',num2str(i),'_wj_',num2str(weight_judge),'.sh'];
+        outfile2=[Path_script,'/run_',var,'_ens_',num2str(i),'.sh'];
         fidout=fopen(outfile2,'w');
         fprintf(fidout,'#!/bin/bash\n');
         fprintf(fidout,['#SBATCH --job-name=rndnum_',var,'_',num2str(i),'\n']);
         fprintf(fidout,'#SBATCH --account=hpc_c_giws_clark\n');
-        fprintf(fidout,['#SBATCH --time=0-3:00:00\n']);
-        fprintf(fidout,'#SBATCH --mem=20G\n');
+        fprintf(fidout,['#SBATCH --time=0-',num2str(hours),':00:00\n']);
+        fprintf(fidout,['#SBATCH --mem=',num2str(mem),'G\n']);
         fprintf(fidout,['chmod a+x ',exefile,'\n']);
         fprintf(fidout,[exefile,' ',file1,'\n']);
         % fprintf(fidout,'rm *.out\n');

@@ -164,7 +164,7 @@ program generate_rndnum_exp2p
   integer (i4b), dimension (:), allocatable :: iorder1d, jorder1d
   integer (i4b) :: maxprev = 49 ! hard coded following spcorr_grd
   
-  logical :: file_flag
+  logical :: file_flag ! if a file exists or not
   integer (i4b) :: initflag ! whether it is the first time step when generating scrf
   real (dp) :: ctime_start, ctime_end ! computation time
 
@@ -173,6 +173,10 @@ program generate_rndnum_exp2p
   
 
   ! ######################################################################################
+  print *, '#######################################################'
+  print *, 'read input files/parameters'
+  
+  ! ##################
   ! read file: part-1
   ! read parameter/file settings from input the namelist file
   f = 0
@@ -183,7 +187,7 @@ program generate_rndnum_exp2p
     f = f + 1
   end do
 
-  call read_namelist_rndnum (namelist_filename)
+  call read_namelist_rndnum (namelist_filename) ! read name list
   exp2p_file = trim(exp2p_file)
   grid_name = trim(grid_name)
   out_spcorr_prefix = trim(out_spcorr_prefix)
@@ -195,13 +199,7 @@ program generate_rndnum_exp2p
   print *, 'stop_ens is ', stop_ens
   print *, 'cross_cc_flag is', cross_cc_flag
   print *, 'weight_judge is ', weight_judge
-!   print *, 'exp2p_file is ', exp2p_file
-!   print *, 'cross_file_prefix is ', cross_file_prefix
-!   print *, 'cc_file is ', cc_file
-!   print *, 'grid_name is ', grid_name
-!   print *, 'out_spcorr_prefix is ', out_spcorr_prefix
-!   print *, 'out_rndnum_prefix is ', out_rndnum_prefix
-  
+
   ! Generate date series (four columns: year/month/start_day/stop_day)
   call generate_date_series(start_date, stop_date, date_series)
   datesize = shape(date_series)
@@ -211,7 +209,7 @@ program generate_rndnum_exp2p
   	print *, 'stop date', date_series(monnum, :)
   end if
 
-  ! ######################################################################################
+  ! ##################
   ! read file: part-2
   ! read grid file which contains information such as lat/lon/elevation etc (i.e., lat, 
   ! lon, hgt, slp_n, slp_e, mask, nx, ny)
@@ -254,7 +252,7 @@ program generate_rndnum_exp2p
   grid%lon = lon
   grid%elv = hgt
   
-  ! ######################################################################################
+  ! ##################
   ! read file: part-3
   ! read exp2p parameters
   error = 0
@@ -272,50 +270,48 @@ program generate_rndnum_exp2p
   ! ######################################################################################
   ! Produce spatial correlation structure based on the correlation model (e.g., Exponential 2parameter)
   ! The structure will be used in random number generation
+  print *, '#######################################################'
   print *, 'Generating spatial correlation structure for 12 months'
   do mm = 1, 12
-  	  call cpu_time(ctime_start) ! computation time: start 
-  
       print *,'Processing month', mm
-      ! check if output file exists
       write( mmstr, '(i2)' )  mm
 	  file_spcc_struct =  trim(out_spcorr_prefix) // 'month_'// trim(mmstr)
-	  
-	  INQUIRE(FILE=file_spcc_struct, EXIST=file_flag)
+	  INQUIRE(FILE=file_spcc_struct, EXIST=file_flag) ! check if output file exists
 	  if (file_flag) then
 	  	  print *, 'Outfile exists. Continue to next month.'
 	  else
+	  	  call cpu_time(ctime_start) ! computation time: start 
 		  ! generate structure: spcorr
 		  if (associated(spcorr)) deallocate (spcorr, stat=ierr)
 		  c0m = c0(:,:,mm)
 		  s0m = s0(:,:,mm)
 		  call spcorr_grd_exp2p (nspl1, nspl2, c0m, s0m, grid, weight_judge, sp_wght_var, sp_sdev_var, sp_ipos_var, sp_jpos_var, sp_num_var, iorder1d, jorder1d)
   		  
-		  ! save structure information to files
+		  ! save structure information to files (this way occupies large space. netcdf is a better way)
 		  open(unit=34,file= file_spcc_struct,form='unformatted',iostat=error)
 		  if(error .ne. 0) then; print *, 'Error opening station weight file', error; stop; end if
 		  write(unit=34,iostat=error) sp_wght_var, sp_ipos_var, sp_jpos_var, sp_num_var, sp_sdev_var, iorder1d, jorder1d
 		  if(error .ne. 0) then; print *, 'Error writing station weight file ', error; stop; end if
 		  close(unit=34)
-		  
 		  deallocate (sp_wght_var, sp_ipos_var, sp_jpos_var, sp_num_var, sp_sdev_var, iorder1d, jorder1d)
+		  
+		  ! output computation time
+		  call cpu_time(ctime_end) ! computation time: end 
+      	  print *, 'computation time (seconds): ', ctime_end - ctime_start
 	  end if
-	  
-	  call cpu_time(ctime_end) ! computation time: end 
-      print *, 'computation time (seconds): ', ctime_end - ctime_start
   end do ! end loop mm
  
   
   ! ######################################################################################
   ! Generate SCRF
+  print *, '#######################################################'
+  print *, 'Generating SCRF for every ensemble member and every month'
   
   ! deallocate/allocate
   if (allocated(rndnum_2D))  deallocate (rndnum_2D, stat=ierr)
   allocate (rndnum_2D(nspl1, nspl2), stat=ierr)
-
   if (allocated(old_random)) deallocate (old_random, stat=ierr)
   allocate (old_random(nspl1, nspl2), stat=ierr)
-  
   if (allocated(sp_wght_var)) deallocate (sp_wght_var)
   if (allocated(sp_ipos_var)) deallocate (sp_ipos_var)
   if (allocated(sp_jpos_var)) deallocate (sp_jpos_var)
@@ -326,75 +322,77 @@ program generate_rndnum_exp2p
   allocate (sp_wght_var(nspl1,nspl2,maxprev), sp_ipos_var(nspl1,nspl2,maxprev), & 
     & sp_jpos_var(nspl1,nspl2,maxprev), sp_num_var(nspl1,nspl2), sp_sdev_var(nspl1,nspl2), & 
     & iorder1d(nspl1*nspl2), jorder1d(nspl1*nspl2), stat=ierr)
-
   
-  ! start generation
-  print *, 'Generating SCRF for every ensemble member and every month'
+  ! start generation of scrf
   do iens = start_ens, stop_ens
-    initflag = 1 ! different ensemble members are independent with each other
+    initflag = 1 ! whether this is the first time step for every ensemble member
     do mstep = 1, monnum
         call cpu_time(ctime_start) ! computation time: start 
         
+        ! print information   
         yy = date_series(mstep, 1)
         mm = date_series(mstep, 2)
         ntimes = date_series(mstep, 4) - date_series(mstep, 3) + 1
-        
         print *, 'Generating random numbers: member/year/month', iens, yy, mm
+        
+        ! file names of spcc structure, cross-correlated scrf (may not be used), and output scrf
         write( mmstr, '(i2)' )  mm
         write( yymmstr, '(i6)' )  yy*100+mm
 		write (suffix, '(I3.3)') iens
-		cc_lcm = cc_lc(:, :, mm)
+		file_spcc_struct = trim(out_spcorr_prefix) // 'month_'// trim(mmstr)
+		file_scrf_forcross = trim(cross_file_prefix) // trim(yymmstr) // '_' // trim(suffix) // '.nc'
+		file_scrf = trim(out_rndnum_prefix) // trim(yymmstr) // '_' // trim(suffix) // '.nc'
 		
         ! load spatial correlation structure
-        print *, 'load spatial correlation structure'
-        file_spcc_struct = trim(out_spcorr_prefix) // 'month_'// trim(mmstr)
+        ! print *, 'load spatial correlation structure'
 		open(unit=34,file=file_spcc_struct,form='unformatted',iostat=error)
 	    read(unit=34,iostat=error) sp_wght_var, sp_ipos_var, sp_jpos_var, sp_num_var, sp_sdev_var, iorder1d, jorder1d
 		close(unit=34)
 		
-		! if using cross correlation is true, reading reference scrf from files
+		! judge cross_cc_flag: reading reference scrf from files or not
 		if (cross_cc_flag .gt. 0) then
-			file_scrf_forcross = trim(cross_file_prefix) // trim(yymmstr) // '_' // trim(suffix) // '.nc'
 			call read_nc_3Dvar (file_scrf_forcross, 'rndnum', rndnum_3D_forcross, error)
         	if (error .ne. 0) call exit_scrf (1, 'problem in reading random numbers for cross correlation')
         end if
 		
-		! generate random numbers for every day
-		print *, 'generate random numbers'	
+		! generate random numbers for every day	
 	    if (allocated(rndnum_3D))  deallocate (rndnum_3D, stat=ierr)
 		allocate (rndnum_3D(nx, ny, ntimes), stat=ierr)
 		rndnum_3D = -9999.0
-		
-		do istep = 1, 2   ! loop for all days in one month
+		do istep = 1, ntimes   ! loop for all days in one month
 		   print *, 'current time step', istep, '    ///    total steps', ntimes 
+		   ! generate spatially correlated random numbers (not temporal consideration here)
 		   call field_rand_nopointer (nspl1, nspl2, sp_wght_var, sp_sdev_var, sp_ipos_var, sp_jpos_var, sp_num_var, iorder1d, jorder1d, rndnum_2D)
 		   if (initflag .eq. 1) then
 		   	  rndnum_3D(:, :, istep) = rndnum_2D
 			  initflag = 0
 		   else
               old_random = rndnum_2D
-      		  ! update temporally isolated random number (rndnum_2D) using random number from previous time step or from another variable
+      		  ! incorporate temporal correlation using lag-1 auto-correlation 
+      		  ! or incorporate cross correlation by considering scrf from another variable
+      		  cc_lcm = cc_lc(:, :, mm) ! lag-1 auto-correlation or cross-correlation between variables
       		  do i = 1, nspl1
 			    do j = 1, nspl2
-			      if (grid%elv(i, j) .gt. -2000) then ! valid dem pixel (mask)
-					  if (cross_cc_flag .lt. 0) then
+			      if (grid%elv(i, j) .gt. -3000) then ! valid dem pixel (mask)
+					  if (cross_cc_flag .lt. 0) then ! atuo-correlation
 						rndnum_3D(i,j,istep)=old_random(i,j)*cc_lcm(i,j) + sqrt(1 - cc_lcm(i,j)*cc_lcm(i,j))*rndnum_2D(i,j)
-					  else
+					  else ! cross-correlation
 						rndnum_3D(i,j,istep)=rndnum_3D_forcross(i,j,istep)*cc_lcm(i,j) + sqrt(1 - cc_lcm(i,j)*cc_lcm(i,j))*rndnum_2D(i,j)
 					  end if
       		      end if
       		    end do
       		  end do
-		   end if
-		end do ! end loop days
+		   end if ! end initflag
+		end do ! end time step loop
 
 		! save random numbers to netcdf files
 		print *, 'save random numbers to nc file'
-		file_scrf = trim(out_rndnum_prefix) // trim(yymmstr) // '_' // trim(suffix) // '.nc'
 		call save_rndnum (rndnum_3D, file_scrf, ierr)
-        
+     	
+     	! print computation time
         call cpu_time(ctime_end) ! computation time: end 
         print *, 'computation time (seconds): ', ctime_end - ctime_start
+        
     end do !end month loop
   end do !end ensemble member loop
    
