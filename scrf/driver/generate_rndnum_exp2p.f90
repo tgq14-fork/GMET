@@ -28,7 +28,7 @@ program generate_rndnum_exp2p
   use nr, only: erf, erfcc ! Numerical Recipies error function
   use namelist_module_rndnum, only: read_namelist_rndnum !namelist module
   use namelist_module_rndnum, only: start_date, stop_date, start_ens, stop_ens, cross_cc_flag, weight_judge, &
-    & exp2p_file, cross_file_prefix, cc_file, grid_name, out_spcorr_prefix, out_rndnum_prefix
+    & overwrite, exp2p_file, cross_file_prefix, cc_file, grid_name, out_spcorr_prefix, out_rndnum_prefix
 
 
   implicit none
@@ -199,6 +199,7 @@ program generate_rndnum_exp2p
   print *, 'stop_ens is ', stop_ens
   print *, 'cross_cc_flag is', cross_cc_flag
   print *, 'weight_judge is ', weight_judge
+  print *, 'overwrite is ', overwrite
 
   ! Generate date series (four columns: year/month/start_day/stop_day)
   call generate_date_series(start_date, stop_date, date_series)
@@ -343,55 +344,61 @@ program generate_rndnum_exp2p
 		file_scrf_forcross = trim(cross_file_prefix) // trim(yymmstr) // '_' // trim(suffix) // '.nc'
 		file_scrf = trim(out_rndnum_prefix) // trim(yymmstr) // '_' // trim(suffix) // '.nc'
 		
-        ! load spatial correlation structure
-        ! print *, 'load spatial correlation structure'
-		open(unit=34,file=file_spcc_struct,form='unformatted',iostat=error)
-	    read(unit=34,iostat=error) sp_wght_var, sp_ipos_var, sp_jpos_var, sp_num_var, sp_sdev_var, iorder1d, jorder1d
-		close(unit=34)
+		! start generation
+		inquire(FILE=file_scrf, EXIST=file_flag) ! check if output file exists
+	  	if ( (file_flag) .and. (overwrite .ne. 1) )then
+	  	    print *, 'Outfile exists. Overwriting is not activated. Continue to next step'
+		else
+			! load spatial correlation structure
+			! print *, 'load spatial correlation structure'
+			open(unit=34,file=file_spcc_struct,form='unformatted',iostat=error)
+			read(unit=34,iostat=error) sp_wght_var, sp_ipos_var, sp_jpos_var, sp_num_var, sp_sdev_var, iorder1d, jorder1d
+			close(unit=34)
 		
-		! judge cross_cc_flag: reading reference scrf from files or not
-		if (cross_cc_flag .gt. 0) then
-			call read_nc_3Dvar (file_scrf_forcross, 'rndnum', rndnum_3D_forcross, error)
-        	if (error .ne. 0) call exit_scrf (1, 'problem in reading random numbers for cross correlation')
-        end if
+			! judge cross_cc_flag: reading reference scrf from files or not
+			if (cross_cc_flag .gt. 0) then
+				call read_nc_3Dvar (file_scrf_forcross, 'rndnum', rndnum_3D_forcross, error)
+				if (error .ne. 0) call exit_scrf (1, 'problem in reading random numbers for cross correlation')
+			end if
 		
-		! generate random numbers for every day	
-	    if (allocated(rndnum_3D))  deallocate (rndnum_3D, stat=ierr)
-		allocate (rndnum_3D(nx, ny, ntimes), stat=ierr)
-		rndnum_3D = -9999.0
-		do istep = 1, ntimes   ! loop for all days in one month
-		   print *, 'current time step', istep, '    ///    total steps', ntimes 
-		   ! generate spatially correlated random numbers (not temporal consideration here)
-		   call field_rand_nopointer (nspl1, nspl2, sp_wght_var, sp_sdev_var, sp_ipos_var, sp_jpos_var, sp_num_var, iorder1d, jorder1d, rndnum_2D)
-		   if (initflag .eq. 1) then
-		   	  rndnum_3D(:, :, istep) = rndnum_2D
-			  initflag = 0
-		   else
-              old_random = rndnum_2D
-      		  ! incorporate temporal correlation using lag-1 auto-correlation 
-      		  ! or incorporate cross correlation by considering scrf from another variable
-      		  cc_lcm = cc_lc(:, :, mm) ! lag-1 auto-correlation or cross-correlation between variables
-      		  do i = 1, nspl1
-			    do j = 1, nspl2
-			      if (grid%elv(i, j) .gt. -3000) then ! valid dem pixel (mask)
-					  if (cross_cc_flag .lt. 0) then ! atuo-correlation
-						rndnum_3D(i,j,istep)=old_random(i,j)*cc_lcm(i,j) + sqrt(1 - cc_lcm(i,j)*cc_lcm(i,j))*rndnum_2D(i,j)
-					  else ! cross-correlation
-						rndnum_3D(i,j,istep)=rndnum_3D_forcross(i,j,istep)*cc_lcm(i,j) + sqrt(1 - cc_lcm(i,j)*cc_lcm(i,j))*rndnum_2D(i,j)
+			! generate random numbers for every day	
+			if (allocated(rndnum_3D))  deallocate (rndnum_3D, stat=ierr)
+			allocate (rndnum_3D(nx, ny, ntimes), stat=ierr)
+			rndnum_3D = -9999.0
+			do istep = 1, ntimes   ! loop for all days in one month
+			   print *, 'current time step', istep, '    ///    total steps', ntimes 
+			   ! generate spatially correlated random numbers (not temporal consideration here)
+			   call field_rand_nopointer (nspl1, nspl2, sp_wght_var, sp_sdev_var, sp_ipos_var, sp_jpos_var, sp_num_var, iorder1d, jorder1d, rndnum_2D)
+			   if (initflag .eq. 1) then
+				  rndnum_3D(:, :, istep) = rndnum_2D
+				  initflag = 0
+			   else
+				  old_random = rndnum_2D
+				  ! incorporate temporal correlation using lag-1 auto-correlation 
+				  ! or incorporate cross correlation by considering scrf from another variable
+				  cc_lcm = cc_lc(:, :, mm) ! lag-1 auto-correlation or cross-correlation between variables
+				  do i = 1, nspl1
+					do j = 1, nspl2
+					  if (grid%elv(i, j) .gt. -3000) then ! valid dem pixel (mask)
+						  if (cross_cc_flag .lt. 0) then ! atuo-correlation
+							rndnum_3D(i,j,istep)=old_random(i,j)*cc_lcm(i,j) + sqrt(1 - cc_lcm(i,j)*cc_lcm(i,j))*rndnum_2D(i,j)
+						  else ! cross-correlation
+							rndnum_3D(i,j,istep)=rndnum_3D_forcross(i,j,istep)*cc_lcm(i,j) + sqrt(1 - cc_lcm(i,j)*cc_lcm(i,j))*rndnum_2D(i,j)
+						  end if
 					  end if
-      		      end if
-      		    end do
-      		  end do
-		   end if ! end initflag
-		end do ! end time step loop
+					end do
+				  end do
+			   end if ! end initflag
+			end do ! end time step loop
 
-		! save random numbers to netcdf files
-		print *, 'save random numbers to nc file'
-		call save_rndnum (rndnum_3D, file_scrf, ierr)
-     	
-     	! print computation time
-        call cpu_time(ctime_end) ! computation time: end 
-        print *, 'computation time (seconds): ', ctime_end - ctime_start
+			! save random numbers to netcdf files
+			print *, 'save random numbers to nc file'
+			call save_rndnum (rndnum_3D, file_scrf, ierr)
+		
+			! print computation time
+			call cpu_time(ctime_end) ! computation time: end 
+			print *, 'computation time (seconds): ', ctime_end - ctime_start
+        end if ! end check file status
         
     end do !end month loop
   end do !end ensemble member loop
