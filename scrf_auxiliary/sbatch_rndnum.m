@@ -9,6 +9,9 @@ clc;clear
 Path_script='/Users/localuser/Downloads/rndnum_scripts';
 exefile='/home/gut428/scratch/SCRF/generate_rndnum_exp2p.exe';
 
+if ~exist(Path_script,'dir')
+   mkdir(Path_script); 
+end
 
 varall={'prcp','tmean','trange','tdew'};
 for v=1:4
@@ -17,7 +20,11 @@ for v=1:4
     start_date=19500101;
     stop_date=20191231;
     ensnum=[1,25]; % start/stop ensemble member
-    hours=34; % run time (hour)
+    if strcmp(var,'prcp')
+        hours=50; % run time (hour)
+    else
+        hours=40; % run time (hour)
+    end
     mem=10; % memory (GB)
     overwrite=0; % 1 means overwrite existing random number files. otherwise, do not
     
@@ -123,7 +130,13 @@ end
 
 
 % sbatch
+for ((i=21;i<=25;i++))
+do
+sbatch run_tmean_ens_${i}.sh
+sbatch run_tdew_ens_${i}.sh
+done
+
 for ((i=1;i<=25;i++))
 do
-sbatch run_tdew_ens_${i}.sh
+sbatch run_prcp_ens_${i}.sh
 done
